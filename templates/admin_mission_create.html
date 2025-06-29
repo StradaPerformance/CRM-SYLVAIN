@@ -1,0 +1,82 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Créer une nouvelle mission</h2>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom de la mission</label>
+            <input type="text" class="form-control" id="nom" name="nom" required>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="date_debut" class="form-label">Date de début</label>
+                <input type="date" class="form-control" id="date_debut" name="date_debut" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="date_fin" class="form-label">Date de fin</label>
+                <input type="date" class="form-control" id="date_fin" name="date_fin" required>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="statut" class="form-label">Statut</label>
+            <select class="form-select" id="statut" name="statut" required>
+                <option value="Préparation">Préparation</option>
+                <option value="En cours">En cours</option>
+                <option value="Clôturée">Clôturée</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="type" class="form-label">Type de mission</label>
+            <input type="text" class="form-control" id="type" name="type" placeholder="Animation, Relevé, Formation...">
+        </div>
+
+        <div class="mb-3">
+            <label for="objectif" class="form-label">Objectif de la mission</label>
+            <textarea class="form-control" id="objectif" name="objectif" rows="3" placeholder="Décris l'objectif ici..."></textarea>
+        </div>
+
+        <!-- Bloc Secteurs -->
+        <div class="mb-3">
+            <label class="form-label">Secteurs de la mission</label>
+            <div id="secteurs-container">
+                <div class="input-group mb-2 secteur-input">
+                    <input type="text" class="form-control" name="secteurs[]" placeholder="Ex : Île-de-France" required>
+                    <button type="button" class="btn btn-danger" onclick="removeSecteur(this)">✕</button>
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addSecteur()">+ Ajouter un secteur</button>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Créer la mission</button>
+            <a href="{{ url_for('admin_missions') }}" class="btn btn-secondary">Retour aux missions</a>
+        </div>
+    </form>
+</div>
+
+<!-- JS pour ajouter/retirer les secteurs -->
+<script>
+    function addSecteur() {
+        const container = document.getElementById('secteurs-container');
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'input-group mb-2 secteur-input';
+        inputGroup.innerHTML = `
+            <input type="text" class="form-control" name="secteurs[]" placeholder="Ex : Bretagne" required>
+            <button type="button" class="btn btn-danger" onclick="removeSecteur(this)">✕</button>
+        `;
+        container.appendChild(inputGroup);
+    }
+
+    function removeSecteur(button) {
+        const group = button.closest('.secteur-input');
+        if (group) group.remove();
+    }
+</script>
+{% endblock %}

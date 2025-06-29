@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">🧾 Audit des enseignes sans centrale</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+
+  {% if audits %}
+  <table class="table table-bordered table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Mission</th>
+        <th>ID Mission</th>
+        <th>Enseigne</th>
+        <th>⚠️ Centrale liée ?</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ligne in audits %}
+      <tr>
+        <td>{{ ligne.mission }}</td>
+        <td>{{ ligne.mission_id }}</td>
+        <td>{{ ligne.enseigne }}</td>
+        <td>
+         <form action="{{ url_for('associer_enseigne') }}" method="post" class="d-flex gap-2 align-items-center">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="mission_id" value="{{ ligne.mission_id }}">
+  <input type="hidden" name="enseigne" value="{{ ligne.enseigne }}">
+  <select name="centrale_id" class="form-select form-select-sm" required>
+    <option value="" disabled selected>Choisir...</option>
+    {% for centrale in centrales %}
+    <option value="{{ centrale.id }}">{{ centrale.nom }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-sm btn-primary">Associer</button>
+</form>
+
+
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="alert alert-success">✅ Toutes les enseignes sont correctement liées à une centrale dans chaque mission.</div>
+  {% endif %}
+</div>
+{% endblock %}

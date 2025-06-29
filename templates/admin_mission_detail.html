@@ -1,0 +1,92 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Détail de la mission : {{ mission.nom }}</h2>
+
+    <!-- Résumé de la mission -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <p><strong>Période :</strong> {{ mission.date_debut.strftime('%d/%m/%Y') }} → {{ mission.date_fin.strftime('%d/%m/%Y') }}</p>
+            <p><strong>Statut :</strong> <span class="badge bg-info">{{ mission.statut }}</span></p>
+            <p><strong>Type :</strong> {{ mission.type }}</p>
+            <p><strong>Objectif :</strong><br> {{ mission.objectif or "Aucun objectif précisé." }}</p>
+        </div>
+    </div>
+
+    <h3>Utilisateurs liés</h3>
+{% if mission.utilisateurs %}
+    <ul class="list-group mb-4">
+        {% for user in mission.utilisateurs %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ user.nom }} ({{ user.fonction }})
+            <a href="/admin/users/{{ user.id }}" class="btn btn-sm btn-outline-primary">Voir fiche</a>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="alert alert-info">Aucun utilisateur lié à cette mission.</div>
+{% endif %}
+
+<h3>Questionnaires de la mission</h3>
+{% if mission.questionnaires %}
+    <ul class="list-group mb-3">
+        {% for q in mission.questionnaires %}
+        <li class="list-group-item">
+            {{ q.nom }}
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="alert alert-warning">Aucun questionnaire pour cette mission.</div>
+{% endif %}
+
+<a href="#" class="btn btn-success">+ Ajouter un questionnaire</a>
+
+
+    <!-- Utilisateurs liés -->
+    <div class="mb-4">
+        <h4>Utilisateurs liés ({{ mission.utilisateurs | length }})</h4>
+        {% if mission.utilisateurs %}
+        <ul class="list-group">
+            {% for user in mission.utilisateurs %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ user.nom }} - {{ user.fonction }}
+                <a href="/admin/utilisateurs/{{ user.id }}" class="btn btn-sm btn-outline-secondary">Fiche</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">Aucun utilisateur lié.</p>
+        {% endif %}
+    </div>
+
+    <!-- Questionnaires liés -->
+    <div class="mb-4">
+        <h4>Questionnaires associés ({{ mission.questionnaires | length }})</h4>
+        {% if mission.questionnaires %}
+        <ul class="list-group">
+            {% for q in mission.questionnaires %}
+            <li class="list-group-item">
+                {{ q.nom }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">Aucun questionnaire associé.</p>
+        {% endif %}
+    </div>
+
+    <!-- Bloc à venir : statistiques -->
+    <div class="mb-4">
+        <h4>Statistiques (à venir)</h4>
+        <p class="text-muted">Les statistiques seront affichées ici (DN, couverture, visites planifiées vs réalisées...)</p>
+    </div>
+
+    <!-- Bloc à venir : photothèque -->
+    <div class="mb-4">
+        <h4>Photothèque (à venir)</h4>
+        <p class="text-muted">Les photos liées à la mission seront affichées ici avec des filtres par utilisateur, tag, période...</p>
+    </div>
+</div>
+{% endblock %}

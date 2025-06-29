@@ -1,0 +1,31 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<div class="container mt-4">
+    <h2>🧩 Enseignes activées pour la mission : {{ mission.nom }}</h2>
+    <p class="text-muted">Clique sur une enseigne pour l'activer ou la désactiver pour cette mission.</p>
+
+    <div class="row row-cols-2 row-cols-md-4 g-4">
+        {% for enseigne in toutes_enseignes %}
+        <div class="col">
+            <div class="card text-center border {% if enseigne.id in enseignes_activees %}border-success{% else %}border-secondary{% endif %}">
+                <div class="card-body">
+                    <img src="{{ url_for('static', filename='logos_enseignes/' + enseigne.nom|lower|replace(' ', '_') + '.png') }}"
+                         alt="{{ enseigne.nom }}" class="img-fluid mb-2" style="max-height: 70px;">
+                    <h6 class="card-title">{{ enseigne.nom }}</h6>
+
+                    {% if enseigne.id in enseignes_activees %}
+                        <a href="{{ url_for('toggle_enseigne_mission', mission_id=mission.id, enseigne_id=enseigne.id, action='desactiver') }}" 
+                           class="btn btn-sm btn-outline-danger">❌ Désactiver</a>
+                    {% else %}
+                        <a href="{{ url_for('toggle_enseigne_mission', mission_id=mission.id, enseigne_id=enseigne.id, action='activer') }}" 
+                           class="btn btn-sm btn-outline-success">✅ Activer</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

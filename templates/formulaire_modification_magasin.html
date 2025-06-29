@@ -1,0 +1,151 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">
+    <i class="fa fa-edit text-danger me-2"></i> Modifier le magasin
+  </h2>
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="row">
+      <div class="col-md-6">
+        <!-- Informations principales -->
+        <div class="mb-3">
+          <label for="nom" class="form-label"><i class="fa fa-store me-1"></i>Nom du magasin</label>
+          <input type="text" class="form-control" id="nom" name="nom" value="{{ magasin.nom or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="adresse" class="form-label"><i class="fa fa-map-marker-alt me-1"></i>Adresse</label>
+          <input type="text" class="form-control" id="adresse" name="adresse" value="{{ magasin.adresse or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="code_postal" class="form-label"><i class="fa fa-mail-bulk me-1"></i>Code postal</label>
+          <input type="text" class="form-control" id="code_postal" name="code_postal" value="{{ magasin.code_postal or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="ville" class="form-label"><i class="fa fa-city me-1"></i>Ville</label>
+          <input type="text" class="form-control" id="ville" name="ville" value="{{ magasin.ville or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="enseigne" class="form-label"><i class="fa fa-tags me-1"></i>Enseigne</label>
+          <select name="enseigne" id="enseigne" class="form-select">
+            <option value="">-- Sélectionner une enseigne --</option>
+            {% for e in enseignes %}
+              <option value="{{ e }}" {% if magasin.enseigne and magasin.enseigne.lower() == e.lower() %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+
+        </div>
+        <div class="mb-3">
+          <label for="centrale" class="form-label"><i class="fa fa-network-wired me-1"></i>Centrale</label>
+          <select class="form-select" id="centrale" name="centrale">
+            <option value="">-- Sélectionner une centrale --</option>
+            {% for c in centrales %}
+              <option value="{{ c.nom }}" {% if magasin.centrale and magasin.centrale.lower() == c.nom.lower() %}selected{% endif %}>{{ c.nom }}</option>
+            {% endfor %}
+            {% set noms_centrales = centrales | map(attribute='nom') | list %}
+            {% if magasin.centrale and magasin.centrale.lower() not in noms_centrales | map('lower') | list %}
+              <option value="{{ magasin.centrale }}" selected>{{ magasin.centrale }} (non lié)</option>
+            {% endif %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="strate_magasin" class="form-label"><i class="fa fa-layer-group me-1"></i>Strate</label>
+          <select class="form-select" id="strate_magasin" name="strate_magasin">
+            <option value="">-- Sélectionner une strate --</option>
+            {% for s in strates %}
+              <option value="{{ s }}" {% if magasin.strate_magasin == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="surface" class="form-label"><i class="fa fa-ruler-combined me-1"></i>Surface (m²)</label>
+          <input type="number" class="form-control" id="surface" name="surface" value="{{ magasin.surface or '' }}">
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <!-- Secondaire à droite -->
+        <div class="mb-3">
+          <label for="rythme_magasin" class="form-label"><i class="fa fa-sync-alt me-1"></i>Rythme magasin</label>
+          <input type="text" class="form-control w-50" id="rythme_magasin" name="rythme_magasin" value="{{ magasin.rythme_magasin or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="telephone" class="form-label"><i class="fa fa-phone me-1"></i>Téléphone</label>
+          <input type="text" class="form-control" id="telephone" name="telephone" value="{{ magasin.telephone or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="fax" class="form-label"><i class="fa fa-fax me-1"></i>Fax</label>
+          <input type="text" class="form-control" id="fax" name="fax" value="{{ magasin.fax or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="statut_special" class="form-label"><i class="fa fa-star me-1"></i>Statut Spécial</label>
+          <input type="text" class="form-control" id="statut_special" name="statut_special" value="{{ magasin.statut_special or '' }}">
+        </div>
+        <div class="mb-3">
+          <label for="code_tdlink" class="form-label"><i class="fa fa-barcode me-1"></i>Code TDLink</label>
+          <input type="text" class="form-control" id="code_tdlink" name="code_tdlink" value="{{ magasin.code_tdlink or '' }}">
+        </div>
+
+        <div class="mb-3">
+          <label for="mission_id" class="form-label"><i class="fa fa-tasks me-1"></i>Mission</label>
+          <select class="form-select" id="mission_id" name="mission_id" onchange="this.form.submit()">
+            <option value="">-- Sélectionner une mission --</option>
+            {% for m in missions %}
+              <option value="{{ m.id }}" {% if magasin.mission_id == m.id %}selected{% endif %}>{{ m.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="secteur_id" class="form-label"><i class="fa fa-map-pin me-1"></i>Secteur</label>
+          <select class="form-select" id="secteur_id" name="secteur_id">
+            <option value="">-- Sélectionner un secteur --</option>
+            {% for secteur in secteurs %}
+              <option value="{{ secteur.id }}" {% if magasin.secteur_id == secteur.id %}selected{% endif %}>
+                {{ secteur.nom }}{% if secteur.chef %} – {{ secteur.chef.prenom }} {{ secteur.chef.nom }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" name="vip" id="vip" {% if magasin.vip %}checked{% endif %}>
+          <label class="form-check-label" for="vip"><i class="fa fa-gem me-1"></i>VIP</label>
+        </div>
+        <div class="form-check mb-4">
+          <input class="form-check-input" type="checkbox" name="actif" id="actif" {% if magasin.actif %}checked{% endif %}>
+          <label class="form-check-label" for="actif"><i class="fa fa-check-circle me-1"></i>Actif</label>
+        </div>
+      </div>
+    </div>
+
+    <h5 class="mt-4"><i class="fa fa-user-tie me-2"></i>Contact magasin</h5>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="mb-3">
+          <label class="form-label"><i class="fa fa-user me-1"></i>Nom du contact</label>
+          <input type="text" class="form-control" name="nom_contact" value="{{ magasin.nom_contact or '' }}">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="mb-3">
+          <label class="form-label"><i class="fa fa-phone me-1"></i>Téléphone contact</label>
+          <input type="text" class="form-control" name="tel_contact" value="{{ magasin.tel_contact or '' }}">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="mb-3">
+          <label class="form-label"><i class="fa fa-envelope me-1"></i>Email contact</label>
+          <input type="email" class="form-control" name="email_contact" value="{{ magasin.email_contact or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+      <a href="{{ url_for('admin_magasins', mission_id=magasin.mission_id) }}" class="btn btn-secondary">⬅️ Retour</a>
+      <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

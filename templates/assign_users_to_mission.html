@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Assigner des utilisateurs à la mission : {{ mission.nom }}</h2>
+
+    <form id="user-form">
+        <div class="row">
+            <div class="col-md-2">
+                <input type="text" class="form-control" id="nom" placeholder="Nom" required>
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control" id="prenom" placeholder="Prénom" required>
+            </div>
+            <div class="col-md-3">
+                <input type="email" class="form-control" id="email" placeholder="Email" required>
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control" id="fonction" placeholder="Fonction">
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control" id="zone" placeholder="Zone">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-success" onclick="ajouterUtilisateur()">➕</button>
+            </div>
+        </div>
+    </form>
+
+    <hr>
+
+    <form method="POST" id="final-form">
+        <input type="hidden" name="utilisateurs[]" id="hidden-users">
+        <h4>Utilisateurs à créer :</h4>
+        <ul id="user-list" class="list-group mb-3"></ul>
+
+        <button type="submit" class="btn btn-primary" onclick="envoyerUtilisateurs()">Finaliser et Assigner</button>
+    </form>
+
+</div>
+
+<script>
+let utilisateurs = [];
+
+function ajouterUtilisateur() {
+    const nom = document.getElementById('nom').value;
+    const prenom = document.getElementById('prenom').value;
+    const email = document.getElementById('email').value;
+    const fonction = document.getElementById('fonction').value;
+    const zone = document.getElementById('zone').value;
+
+    if (nom && prenom && email) {
+        const utilisateur = `${nom}|${prenom}|${email}|${fonction}|${zone}`;
+        utilisateurs.push(utilisateur);
+
+        const liste = document.getElementById('user-list');
+        const item = document.createElement('li');
+        item.className = 'list-group-item';
+        item.innerText = `${nom} ${prenom} - ${email} (${fonction} - ${zone})`;
+        liste.appendChild(item);
+
+        // Vide les champs après ajout
+        document.getElementById('user-form').reset();
+    }
+}
+
+function envoyerUtilisateurs() {
+    document.getElementById('hidden-users').value = utilisateurs;
+}
+</script>
+
+{% endblock %}

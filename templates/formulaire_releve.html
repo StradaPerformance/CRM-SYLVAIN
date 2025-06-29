@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2 class="mb-4">📝 Nouveau relevé pour le magasin {{ magasin.nom }}</h2>
+
+<form method="POST" action="" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label for="date_visite" class="form-label">📅 Date de la visite</label>
+            <input type="date" name="date_visite" id="date_visite" class="form-control" required>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="heure_visite" class="form-label">🕒 Heure de la visite</label>
+            <input type="time" name="heure_visite" id="heure_visite" class="form-control">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="prochaine_visite" class="form-label">📅 Prochaine visite</label>
+            <input type="date" name="prochaine_visite" id="prochaine_visite" class="form-control">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="interlocuteur" class="form-label">👤 Interlocuteur</label>
+            <input type="text" name="interlocuteur" id="interlocuteur" class="form-control">
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="decisionnaire" class="form-label">🎯 Décisionnaire</label>
+            <input type="text" name="decisionnaire" id="decisionnaire" class="form-control">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label for="en_rdv" class="form-label">🔔 En rendez-vous ?</label>
+            <select name="en_rdv" id="en_rdv" class="form-select">
+                <option value="0">Non</option>
+                <option value="1">Oui</option>
+            </select>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="commande_effectuee" class="form-label">🛒 Commande effectuée ?</label>
+            <select name="commande_effectuee" id="commande_effectuee" class="form-select">
+                <option value="0">Non</option>
+                <option value="1">Oui</option>
+            </select>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="action_merch" class="form-label">🧱 Action merchandising ?</label>
+            <select name="action_merch" id="action_merch" class="form-select">
+                <option value="0">Non</option>
+                <option value="1">Oui</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="strate_observee" class="form-label">🏷️ Strate observée</label>
+        <input type="text" name="strate_observee" id="strate_observee" class="form-control">
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="photo_avant" class="form-label">📸 Photo avant</label>
+            <input type="file" name="photo_avant" id="photo_avant" class="form-control">
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="photo_apres" class="form-label">📸 Photo après</label>
+            <input type="file" name="photo_apres" id="photo_apres" class="form-control">
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <label for="commentaire" class="form-label">🗒️ Commentaire</label>
+        <textarea name="commentaire" id="commentaire" class="form-control" rows="4"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">💾 Enregistrer le relevé</button>
+    <a href="{{ url_for('fiche_magasin', magasin_id=magasin.id) }}" class="btn btn-secondary">⬅️ Retour</a>
+</form>
+
+{% endblock %}

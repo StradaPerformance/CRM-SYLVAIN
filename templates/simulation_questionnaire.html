@@ -1,0 +1,105 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<!-- 🌐 Styles locaux -->
+<style>
+  .container-simulation {
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .tab-link {
+    padding: 1rem 0;
+    font-weight: 500;
+    color: #444;
+    position: relative;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .tab-link::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 0;
+    left: 0;
+    bottom: 0;
+    background-color: #d80c45;
+    transition: width 0.3s ease;
+  }
+
+  .tab-link:hover::after,
+  .tab-link.active::after {
+    width: 100%;
+  }
+
+  .tab-link:hover,
+  .tab-link.active {
+    color: #d80c45;
+  }
+
+  .btn-strada {
+    background-color: #d80c45;
+    color: white;
+    border: none;
+  }
+
+  .btn-strada:hover {
+    background-color: #b80a3a;
+  }
+</style>
+
+<!-- ✅ Barre d’onglets -->
+<div class="tab-bar">
+  <a href="{{ url_for('admin_questionnaires') }}" class="tab-link">📋 Questionnaires</a>
+  <a href="{{ url_for('admin_questions') }}" class="tab-link">🧠 Questions</a>
+  <a href="{{ url_for('simuler_questionnaire_depuis_admin') }}" class="tab-link {% if request.endpoint == 'simuler_questionnaire_depuis_admin' %}active{% endif %}">🎯 Simulation</a>
+  <span class="tab-link" style="color: #aaa; cursor: not-allowed;">📊 Analyse (à venir)</span>
+</div>
+
+<!-- ✅ Formulaire de sélection -->
+<div class="container container-simulation">
+  <h3 class="mb-4">🎯 Lancer une simulation</h3>
+
+  <form method="GET" action="{{ url_for('lancer_simulation') }}">
+    <div class="mb-3">
+      <label for="mission_id" class="form-label">Mission</label>
+      <select class="form-select" name="mission_id" id="mission_id" onchange="this.form.submit()">
+        <option value="">🗂️ Sélectionner une mission</option>
+        {% for m in missions %}
+          <option value="{{ m.id }}" {% if m.id == selected_mission_id %}selected{% endif %}>{{ m.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {% if selected_mission_id %}
+    <div class="mb-3">
+      <label for="questionnaire_id" class="form-label">Questionnaire</label>
+      <select class="form-select" name="questionnaire_id" id="questionnaire_id" required>
+        <option value="">📄 Sélectionner un questionnaire</option>
+        {% for q in questionnaires %}
+          <option value="{{ q.id }}">{{ q.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-strada mt-3">🚀 Démarrer la simulation</button>
+    {% endif %}
+  </form>
+</div>
+
+{% endblock %}

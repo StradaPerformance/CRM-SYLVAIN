@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+    <h2 class="mb-4">📦 Programmation des Assortiments</h2>
+    <p class="mb-4">Cliquez sur une enseigne pour gérer ses centrales régionales, les produits associés et leurs strates.</p>
+
+    <div class="row">
+        {% for enseigne in enseignes %}
+        <div class="col-md-3 text-center mb-4">
+            <a href="{{ url_for('enseigne_centrales', enseigne_id=enseigne.id) }}">
+                <img src="{{ url_for('static', filename=enseigne.logo or 'default_logo.png') }}" alt="{{ enseigne.nom }}" class="img-fluid" style="max-height: 100px;">
+                <p class="mt-2">{{ enseigne.nom }}</p>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<!-- 🌐 Styles locaux -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap');
+
+  body {
+    background-color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    color: #333;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .tab-link {
+    padding: 1rem 0;
+    font-weight: 500;
+    color: #444;
+    position: relative;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .tab-link::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 0;
+    left: 0;
+    bottom: 0;
+    background-color: #d80c45;
+    transition: width 0.3s ease;
+  }
+
+  .tab-link:hover::after,
+  .tab-link.active::after {
+    width: 100%;
+  }
+
+  .tab-link:hover,
+  .tab-link.active {
+    color: #d80c45;
+  }
+
+  .container-questions {
+    padding: 1rem;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  #map {
+    height: 600px;
+    width: 100%;
+    border-radius: 10px;
+    margin-top: 1rem;
+  }
+</style>
+
+<!-- ✅ Scripts Google Maps -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPMEnHfnliE7sKWpb0NVdCtpHaU_4X1Mk&callback=initMap" async defer></script>
+
+<!-- ✅ Barre d’onglets -->
+<div class="tab-bar">
+  <a href="{{ url_for('admin_map') }}" class="tab-link active">🗺️ Carte</a>
+</div>
+
+<!-- ✅ Contenu principal -->
+<div class="container container-questions mt-4">
+  <h2 class="mb-4">🗺️ Visualisation des points de vente</h2>
+
+  <!-- 🔍 Filtres -->
+  <form method="GET" class="row mb-3">
+    <div class="col-md-6">
+      <label for="mission_id">Mission</label>
+      <select class="form-select" name="mission_id" id="mission_id" onchange="this.form.submit()">
+        <option value="">Toutes les missions</option>
+        {% for mission in missions %}
+          <option value="{{ mission.id }}" {% if mission.id == selected_mission_id %}selected{% endif %}>{{ mission.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label for="user_id">Utilisateur</label>
+      <select class="form-select" name="user_id" id="user_id" onchange="this.form.submit()">
+        <option value="">Tous les utilisateurs</option>
+        {% for user in utilisateurs %}
+          <option value="{{ user.id }}" {% if user.id == selected_user_id %}selected{% endif %}>{{ user.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <!-- 🗺️ Carte -->
+  <div id="map"></div>
+</div>
+
+<!-- 🧠 Script Google Maps -->
+<script>
+  function initMap() {
+    const map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 6,
+      center: { lat: 46.603354, lng: 1.888334 },
+    });
+
+    const points = {{ magasins_json|safe }};
+    points.forEach(pdv => {
+      if (pdv.lat && pdv.lon) {
+        const marker = new google.maps.Marker({
+          position: { lat: pdv.lat, lng: pdv.lon },
+          map: map,
+          title: pdv.nom
+        });
+
+        const content = `<strong>${pdv.nom}</strong><br>${pdv.ville}<br>${pdv.enseigne}`;
+        const infowindow = new google.maps.InfoWindow({ content });
+
+        marker.addListener("click", () => {
+          infowindow.open({ anchor: marker, map });
+        });
+      }
+    });
+  }
+</script>
+
+{% endblock %}

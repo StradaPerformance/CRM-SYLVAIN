@@ -1,0 +1,72 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<h2 class="mb-4">➕ Création d'une nouvelle question</h2>
+
+<form method="POST" action="{{ url_for('create_question') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="questionnaire_id" value="{{ questionnaire_id }}">
+
+  <div class="mb-3">
+    <label for="question_texte" class="form-label">Intitulé de la question</label>
+    <input type="text" class="form-control" name="question_texte" required>
+  </div>
+
+  <div class="mb-3">
+    <label for="type_question" class="form-label">Type de réponse</label>
+    <select class="form-select" name="type_question">
+      <option value="texte">Texte</option>
+      <option value="choix_unique">Choix unique</option>
+      <option value="choix_multiple">Choix multiple</option>
+      <option value="date">Date</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label for="ordre" class="form-label">Ordre d'affichage</label>
+    <input type="number" class="form-control" name="ordre" min="0">
+  </div>
+
+  <div class="mb-3">
+    <label for="options_reponse" class="form-label">Options de réponse (séparées par un ";")</label>
+    <textarea class="form-control" name="options_reponse" rows="2"></textarea>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col">
+      <label class="form-label">Nombre minimum de réponses</label>
+      <input type="number" class="form-control" name="min_reponses" min="0">
+    </div>
+    <div class="col">
+      <label class="form-label">Nombre maximum de réponses</label>
+      <input type="number" class="form-control" name="max_reponses" min="0">
+    </div>
+  </div>
+
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="ajouter_libre" id="ajouter_libre">
+    <label class="form-check-label" for="ajouter_libre">
+      Autoriser une réponse libre ("Autre")
+    </label>
+  </div>
+
+  <div class="form-check form-switch mb-3">
+    <input class="form-check-input" type="checkbox" name="conditionnelle" value="1" id="conditionnelle">
+    <label class="form-check-label" for="conditionnelle">Question conditionnelle</label>
+  </div>
+
+  <div class="mb-3">
+    <label for="condition_question_id" class="form-label">ID de la question parent (si conditionnelle)</label>
+    <input type="text" class="form-control" name="condition_question_id">
+  </div>
+
+  <div class="mb-3">
+    <label for="condition_valeur" class="form-label">Valeur attendue de la question parent</label>
+    <input type="text" class="form-control" name="condition_valeur">
+  </div>
+
+  <button type="submit" class="btn btn-success">💾 Enregistrer la question</button>
+  <a href="{{ url_for('admin_questions', questionnaire_id=questionnaire_id) }}" class="btn btn-secondary">Retour</a>
+</form>
+
+{% endblock %}

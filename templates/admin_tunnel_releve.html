@@ -1,0 +1,171 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap');
+  body {
+    background-color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    color: #333;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab-link {
+    padding: 1rem 0;
+    font-weight: 500;
+    color: #444;
+    position: relative;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .tab-link::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 0;
+    left: 0;
+    bottom: 0;
+    background-color: #d80c45;
+    transition: width 0.3s ease;
+  }
+  .tab-link:hover::after,
+  .tab-link.active::after {
+    width: 100%;
+  }
+  .tab-link:hover,
+  .tab-link.active {
+    color: #d80c45;
+  }
+  .container-questions {
+    padding: 1rem;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .table {
+    margin-top: 1.5rem;
+  }
+  .table thead {
+    background-color: #f9f9f9;
+  }
+  .table td, .table th {
+    vertical-align: middle;
+  }
+  .form-check-input {
+    transform: scale(1.3);
+  }
+  .btn-outline-dark {
+    border-color: #d80c45;
+    color: #d80c45;
+  }
+  .btn-outline-dark:hover {
+    background-color: #d80c45;
+    color: white;
+  }
+  .edit-link {
+    font-size: 0.9rem;
+    color: #999;
+    margin-left: 4px;
+  }
+  .edit-link:hover {
+    color: #d80c45;
+    text-decoration: underline;
+  }
+</style>
+
+<div class="tab-bar">
+  <a href="{{ url_for('admin_questionnaires') }}" class="tab-link">📋 Questionnaires</a>
+  <a href="{{ url_for('admin_tunnel_releve') }}" class="tab-link active">🛠 Tunnel Relevé</a>
+  <a href="{{ url_for('admin_produits') }}" class="tab-link">🧃 Produits</a>
+  <a href="{{ url_for('admin_magasins') }}" class="tab-link">🏪 Magasins</a>
+</div>
+
+<div class="container mt-4 container-questions">
+  <h1 class="mb-4">📜 Configuration des tunnels de relevé</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <table class="table table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Mission</th>
+          <th class="text-center">Prépa</th>
+          <th class="text-center">📸 Avant</th>
+          <th class="text-center">📋 Q°</th>
+          <th class="text-center">📦 Produits</th>
+          <th class="text-center">🏷️ Concurrence</th>
+          <th class="text-center">📸 Après</th>
+          <th class="text-center">🗒️ Commentaire</th>
+          <th class="text-center">🤖 Résumé IA</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tunnel in tunnels %}
+        <tr>
+          <td>{{ tunnel.mission.nom }}</td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_preparation" {% if tunnel.preparation %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='preparation') }}" class="edit-link">🖉</a>
+          </td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_photos_avant" {% if tunnel.photos_avant %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='photos_avant') }}" class="edit-link">🖉</a>
+          </td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_questionnaire" {% if tunnel.questionnaire %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='questionnaire') }}" class="edit-link">🖉</a>
+          </td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_produits" {% if tunnel.produits %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='produits') }}" class="edit-link">🖉</a>
+          </td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_concurrence" {% if tunnel.concurrence %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='concurrence') }}" class="edit-link">🖉</a>
+          </td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_photos_apres" {% if tunnel.photos_apres %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='photos_apres') }}" class="edit-link">🖉</a>
+          </td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_commentaire" {% if tunnel.commentaire %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='commentaire') }}" class="edit-link">🖉</a>
+          </td>
+          <td class="text-center">
+            <input class="form-check-input" type="checkbox" name="{{ tunnel.id }}_resume_ia" {% if tunnel.resume_ia %}checked{% endif %}>
+            <a href="{{ url_for('admin_config_bloc', mission_id=tunnel.mission.id, bloc='resume_ia') }}" class="edit-link">🖉</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="d-flex justify-content-end mt-4">
+      <button type="submit" class="btn btn-outline-dark">💾 Enregistrer les modifications</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

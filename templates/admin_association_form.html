@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Créer une nouvelle association</h2>
+
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="mb-3">
+            <label for="produit_id" class="form-label">Produit</label>
+            <select name="produit_id" id="produit_id" class="form-select" required>
+                <option value="">-- Sélectionner un produit --</option>
+                {% for produit in produits %}
+                    <option value="{{ produit.id }}">{{ produit.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="centrale_id" class="form-label">Centrale</label>
+            <select name="centrale_id" id="centrale_id" class="form-select" required>
+                <option value="">-- Sélectionner une centrale --</option>
+                {% for centrale in centrales %}
+                    <option value="{{ centrale.id }}">{{ centrale.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="strate" class="form-label">Strate</label>
+            <select name="strate" id="strate" class="form-select" required>
+                <option value="">-- Sélectionner une strate --</option>
+                <option value="T1">T1</option>
+                <option value="T2">T2</option>
+                <option value="T3">T3</option>
+                <option value="NA">Non attribuée</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success">Créer</button>
+        <a href="{{ url_for('afficher_associations') }}" class="btn btn-secondary">Annuler</a>
+    </form>
+</div>
+{% endblock %}

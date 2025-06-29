@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+    <title>Analyse des réponses</title>
+</head>
+<body>
+    <h2>Analyse des réponses par point de vente</h2>
+
+    <form method="GET" action="/analyse">
+        <label>Filtrer par mission :</label>
+        <select name="mission_id">
+            <option value="">Toutes</option>
+            {% for mission in missions %}
+            <option value="{{ mission[0] }}">{{ mission[1] }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Filtrer par typologie :</label>
+        <select name="typologie">
+            <option value="">Toutes</option>
+            {% for t in typologies %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Analyser</button>
+    </form>
+
+    <h3>Résultats</h3>
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Magasin</th>
+            <th>Ville</th>
+            <th>Typologie</th>
+            <th>Question</th>
+            <th>Réponse</th>
+            <th>Date</th>
+        </tr>
+        {% for r in resultats %}
+        <tr>
+            <td>{{ r['magasin'] }}</td>
+            <td>{{ r['ville'] }}</td>
+            <td>{{ r['typologie'] }}</td>
+            <td>{{ r['question'] }}</td>
+            <td>{{ r['reponse'] }}</td>
+            <td>{{ r['date'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

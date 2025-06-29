@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Créer une centrale</h2>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom de la centrale *</label>
+            <input type="text" class="form-control" id="nom" name="nom" required>
+        </div>
+    
+        <!-- ... le reste du formulaire ... -->
+    
+
+        <div class="mb-3">
+            <label for="type_centrale" class="form-label">Type de centrale *</label>
+            <select class="form-select" id="type_centrale" name="type_centrale" required>
+                <option value="Nationale">Nationale</option>
+                <option value="Régionale">Régionale</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="enseigne_id" class="form-label">Assigner à une enseigne *</label>
+            <select class="form-select" id="enseigne_id" name="enseigne_id" required>
+                {% for enseigne in enseignes %}
+                    <option value="{{ enseigne.id }}">{{ enseigne.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="mission_id" class="form-label">Mission (optionnel)</label>
+            <select class="form-select" id="mission_id" name="mission_id">
+                <option value="">Aucune</option>
+                {% for mission in missions %}
+                    <option value="{{ mission.id }}">{{ mission.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="/admin/enseignes" class="btn btn-secondary">⬅️ Retour aux enseignes</a>
+            <button type="submit" class="btn btn-primary">Créer la centrale</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

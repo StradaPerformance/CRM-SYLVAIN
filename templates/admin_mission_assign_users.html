@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Assigner des utilisateurs à la mission : <strong>{{ mission.nom }}</strong></h2>
+
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="mb-3">
+            <label for="utilisateurs" class="form-label">Utilisateurs disponibles :</label>
+            <select class="form-select" id="utilisateurs" name="user_ids" multiple size="10" required>
+                {% for user in utilisateurs %}
+                    <option value="{{ user.id }}">{{ user.nom }} {{ user.prenom }} - {{ user.fonction }}</option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">Maintenez CTRL (Windows) ou CMD (Mac) pour sélectionner plusieurs utilisateurs.</small>
+        </div>
+
+        <button type="submit" class="btn btn-success">Assigner sélection</button>
+        <a href="{{ url_for('mission_detail', mission_id=mission.id) }}" class="btn btn-secondary ms-2">Retour à la mission</a>
+    </form>
+
+    <hr>
+
+    <h4>Utilisateurs déjà assignés :</h4>
+    {% if utilisateurs_assignes %}
+        <ul class="list-group">
+            {% for user in utilisateurs_assignes %}
+                <li class="list-group-item">
+                    {{ user.nom }} {{ user.prenom }} ({{ user.fonction }})
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="alert alert-info mt-2">
+            Aucun utilisateur encore assigné à cette mission.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

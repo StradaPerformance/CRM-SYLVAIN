@@ -1,0 +1,74 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+    <!-- 💡 Bannière de téléchargement de template -->
+    <div class="alert alert-info d-flex align-items-center justify-content-between">
+        <div>
+            <strong>📄 Besoin d’un exemple ?</strong><br>
+            Téléchargez le fichier modèle pour préparer votre import au bon format.
+        </div>
+        <a href="{{ url_for('static', filename='template_import_magasins.xlsx') }}" class="btn btn-outline-primary btn-sm" download>
+            ⬇️ Télécharger le template
+        </a>
+    </div>
+<div class="mb-3">
+    <a href="{{ url_for('static', filename='templates/template_import_magasins.xlsx') }}"
+       class="btn btn-outline-secondary btn-sm" download>
+        ⬇️ Télécharger le modèle d'import (.xlsx)
+    </a>
+</div>
+
+    <!-- ⚠️ Rappel sur les prérequis -->
+    <div class="alert alert-warning">
+        <strong>⚠️ Avant d’importer :</strong> Assurez-vous que les <b>enseignes</b> et <b>centrales</b> existent déjà dans le CRM, et que leur orthographe est parfaitement respectée. Vous pouvez les consulter ou créer via <a href="/admin/assortiments" class="alert-link">la vue assortiments</a>.
+    </div>
+
+    <!-- 📝 Formulaire d'import -->
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        
+        <div class="mb-3">
+            <label class="form-label">📂 Fichier Excel à importer</label>
+            <input type="file" name="fichier" class="form-control" accept=".xlsx" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">🎯 Mission à laquelle rattacher ces magasins</label>
+            <select name="mission_id" class="form-select" required>
+                <option value="">-- Sélectionner une mission active --</option>
+                {% for mission in missions %}
+                    <option value="{{ mission.id }}">{{ mission.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary">🚀 Lancer l'import</button>
+        </div>
+    </form>
+    {% if erreurs %}
+  <div class="alert alert-danger mt-4">
+    <strong>❌ {{ erreurs|length }} erreurs détectées. Aucun magasin importé.</strong><br>
+    Veuillez corriger les lignes suivantes dans votre fichier Excel :
+  </div>
+
+  <table class="table table-sm table-bordered mt-2">
+    <thead>
+      <tr>
+        <th>Ligne Excel</th>
+        <th>Erreur</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for err in erreurs %}
+        <tr>
+          <td>{{ err.ligne }}</td>
+          <td>{{ err.message }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+</div>
+{% endblock %}

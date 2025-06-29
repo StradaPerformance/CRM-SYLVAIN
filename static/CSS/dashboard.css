@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+
+:root {
+    --sidebar-bg: #ffffff;
+    --sidebar-color: #d80c45;
+    --sidebar-hover: #f9f9f9;
+    --text-color: #333;
+    --bg-color: #f5f5f5;
+    --transition-speed: 0.3s;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    height: 100vh;
+    display: flex;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100vh;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-color);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #ddd;
+    z-index: 1000;
+    transition: width var(--transition-speed);
+    overflow-y: auto;
+}
+
+.sidebar .sidebar-section {
+    padding: 20px;
+}
+
+.sidebar a {
+    display: flex;
+    align-items: center;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    transition: background-color var(--transition-speed);
+}
+
+.sidebar a:hover {
+    background-color: var(--sidebar-hover);
+    color: var(--sidebar-color);
+}
+
+.sidebar i {
+    margin-right: 12px;
+    font-size: 18px;
+}
+
+.sidebar .sidebar-footer {
+    margin-top: auto;
+    padding: 15px 20px;
+    font-size: 0.9em;
+    color: #999;
+}
+
+.content {
+    margin-left: 250px;
+    padding: 20px;
+    width: calc(100% - 250px);
+    height: 100vh;
+    overflow-y: auto;
+    background-color: var(--bg-color);
+}
+
+/* Responsive sidebar collapse */
+.sidebar.collapsed {
+    width: 70px;
+}
+
+.sidebar.collapsed .sidebar-section a .text,
+.sidebar.collapsed .sidebar-footer {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-section a {
+    justify-content: center;
+}
+
+.btn-primary {
+    background-color: #d80c45 !important;
+    border-color: #d80c45 !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: #b10a3a !important;
+    border-color: #b10a3a !important;
+}
+/* Appliquer la couleur Strada à la bordure de focus */
+.form-control:focus, .form-select:focus {
+    border-color: #d80c45 !important;
+    box-shadow: 0 0 0 0.2rem rgba(216, 12, 69, 0.25) !important;
+}
+select.form-select:focus,
+input.form-control:focus {
+    border-color: #d80c45 !important;
+    box-shadow: 0 0 0 0.25rem rgba(216, 12, 69, 0.25) !important;
+    outline: none !important;
+}

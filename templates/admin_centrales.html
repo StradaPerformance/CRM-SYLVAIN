@@ -1,0 +1,33 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>📦 Liste des centrales</h2>
+    <a href="{{ url_for('create_centrale') }}" class="btn btn-success mb-3">➕ Nouvelle centrale</a>
+
+    <table class="table table-hover table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Nom de la centrale</th>
+                <th>Type</th>
+                <th>Enseigne affiliée</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for centrale in centrales %}
+            <tr>
+                <td>{{ centrale.nom }}</td>
+                <td>{{ centrale.type_centrale or "—" }}</td>
+                <td>{{ centrale.enseigne.nom if centrale.enseigne else "Non liée" }}</td>
+                <td>
+                    <a href="{{ url_for('edit_centrale', centrale_id=centrale.id) }}" class="btn btn-sm btn-primary">✏️ Modifier</a>
+                    <a href="{{ url_for('delete_centrale', centrale_id=centrale.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Supprimer cette centrale ?')">🗑️ Supprimer</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

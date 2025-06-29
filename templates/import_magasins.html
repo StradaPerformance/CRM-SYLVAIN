@@ -1,0 +1,188 @@
+{% extends 'layout.html' %}
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap');
+  body { background-color: #ffffff; font-family: 'Montserrat', sans-serif; color: #333; }
+  .tab-bar {
+    display: flex; gap: 2rem; border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 2rem; padding-left: 1rem;
+    background-color: #ffffff; position: sticky; top: 0; z-index: 10;
+  }
+  .tab-link {
+    padding: 1rem 0; font-weight: 500; color: #444;
+    position: relative; text-decoration: none; transition: color 0.3s;
+  }
+  .tab-link::after {
+    content: ""; position: absolute; height: 2px; width: 0;
+    left: 0; bottom: 0; background-color: #d80c45; transition: width 0.3s ease;
+  }
+  .tab-link:hover::after, .tab-link.active::after { width: 100%; }
+  .tab-link:hover, .tab-link.active { color: #d80c45; }
+</style>
+
+<div class="tab-bar">
+  <a href="{{ url_for('admin_magasins', mission_id=mission_id) }}" class="tab-link">📋 Liste des magasins</a>
+  <a href="{{ url_for('import_magasins', mission_id=mission_id) }}" class="tab-link active">📥 Import Excel</a>
+  <a href="{{ url_for('export_magasins', mission_id=mission_id) }}" class="tab-link">📤 Export Excel</a>
+  <a href="{{ url_for('create_magasin', mission_id=mission_id) }}" class="tab-link">➕ Ajouter un magasin</a>
+</div>
+
+<div class="container mt-4">
+  {% if erreurs %}
+  <div class="alert alert-danger mt-5">
+    <strong>❌ {{ erreurs|length }} erreur{{ 's' if erreurs|length > 1 else '' }} détectée{{ 's' if erreurs|length > 1 else '' }}. Aucun magasin importé.</strong><br>
+    {% set show_table = false %}
+    {% for err in erreurs %}
+      {% if err is mapping %}
+        {% set show_table = true %}
+      {% endif %}
+    {% endfor %}
+    {% if show_table %}
+      <p class="mt-2">Veuillez corriger les lignes suivantes dans votre fichier Excel :</p>
+      <table class="table table-sm table-bordered mt-2">
+        <thead>
+          <tr>
+            <th>Ligne Excel</th>
+            <th>Erreur</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for err in erreurs if err is mapping %}
+            <tr>
+              <td>{{ err.ligne }}</td>
+              <td>{{ err.message }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="mt-2">Une ou plusieurs erreurs ont été détectées, mais aucun détail n’a pu être affiché. Voici les messages bruts :</p>
+      <ul class="mt-2">
+        {% for err in erreurs %}
+          <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="alert alert-warning">
+    <strong>⚠️ Avant d’importer :</strong> Assurez-vous que les <b>enseignes</b> et <b>centrales</b> existent déjà dans le CRM, et que leur orthographe est parfaitement respectée. Vous pouvez les consulter ou créer via <a href="/admin/assortiments" class="alert-link">la vue assortiments</a>.
+  </div>
+
+  <h2>📥 Importer des magasins</h2>
+
+  <div class="mb-4">
+    <a href="{{ url_for('static', filename='templates/template_import_magasins.xlsx') }}" 
+       class="btn btn-outline-secondary btn-sm" 
+       download>
+      ⬇️ Télécharger le modèle Excel d’import
+    </a>
+  </div>
+
+  
+  <form method="POST" enctype="multipart/form-data" id="form-import">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="mb-3">
+      <label class="form-label">📂 Fichier Excel à importer</label>
+      <input type="file" name="fichier" class="form-control" accept=".xlsx" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">🎯 Mission à laquelle rattacher ces magasins</label>
+      <select name="mission_id" class="form-select" required>
+        <option value="">-- Sélectionner une mission active --</option>
+        {% for mission in missions %}
+          <option value="{{ mission.id }}">{{ mission.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="d-grid">
+      <button type="submit" class="btn btn-primary">🚀 Lancer l'import</button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("form-import");
+
+  const funFacts = [
+    "🚀 Une fusée Saturn V utilisait 15 tonnes de carburant... par seconde.",
+    "🧠 L'activité électrique de votre cerveau pourrait alimenter une ampoule LED.",
+    "🌌 Il y a plus d’étoiles dans l’univers que de grains de sable sur Terre.",
+    "🦑 Un calmar géant possède des yeux de la taille d’un ballon de football.",
+    "🔬 Un ADN déroulé mesure 2 mètres, et vous en avez 37 000 milliards.",
+    "🎼 Beethoven était sourd lorsqu’il a composé sa 9e symphonie.",
+    "💡 Une ampoule Edison brille depuis plus de 120 ans.",
+    "🌋 80 % des volcans sont sous-marins.",
+    "🌍 Vous tournez à 1 670 km/h sur Terre en ce moment.",
+    "⚡ La foudre chauffe l’air à 30 000 °C, 5× plus que le Soleil.",
+    "📦 Amazon vend 306 produits... chaque seconde.",
+    "⏳ 300 heures de vidéos sont uploadées sur YouTube chaque minute."
+  ];
+
+  form.addEventListener("submit", function () {
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.backgroundColor = "rgba(255,255,255,0.95)";
+    overlay.style.zIndex = "9999";
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.justifyContent = "center";
+    overlay.style.alignItems = "center";
+    overlay.innerHTML = `
+      <div class="spinner-border text-danger" style="width: 4rem; height: 4rem;" role="status">
+        <span class="visually-hidden">Chargement...</span>
+      </div>
+      <p class="mt-3 fw-bold fs-5">Import en cours... ⏳</p>
+      <div id="funfact" class="mt-3" style="max-width: 800px; padding: 20px; text-align: center; font-style: italic; font-size: 1.2rem; font-weight: 500; color: #d80c45; border-left: 5px solid #d80c45; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        Chargement du fun fact...
+      </div>
+      <div class="mt-4">
+        <button id="clickMe" class="btn btn-outline-primary btn-lg">Clique-moi vite !</button>
+        <p id="reactionTime" class="mt-2 text-muted"></p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const funfactElement = document.getElementById("funfact");
+    let index = 0;
+    function updateFunFact() {
+      funfactElement.style.opacity = 0;
+      setTimeout(() => {
+        funfactElement.textContent = funFacts[index];
+        funfactElement.style.opacity = 1;
+        index = (index + 1) % funFacts.length;
+      }, 300);
+    }
+    updateFunFact();
+    setInterval(updateFunFact, 10000);
+
+    const clickButton = document.getElementById("clickMe");
+    const reactionText = document.getElementById("reactionTime");
+    let startTime;
+
+    setTimeout(() => {
+      clickButton.classList.replace("btn-outline-primary", "btn-success");
+      clickButton.textContent = "CLIQUE MAINTENANT !";
+      startTime = new Date().getTime();
+    }, Math.random() * 4000 + 2000);
+
+    clickButton.addEventListener("click", () => {
+      if (!startTime) {
+        reactionText.textContent = "Trop tôt ! Attends le signal vert 😅";
+      } else {
+        const reactionTime = new Date().getTime() - startTime;
+        reactionText.textContent = `⏱️ Temps de réaction : ${reactionTime} ms`;
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

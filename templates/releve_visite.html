@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container mt-4">
+    <h2 class="mb-4">📝 Relevé de visite pour le magasin {{ magasin.nom }}</h2>
+
+    <div class="progress mb-4">
+        <div class="progress-bar" role="progressbar" style="width: {{ completion }}%;" aria-valuenow="{{ completion }}" aria-valuemin="0" aria-valuemax="100">
+            {{ completion }}%
+        </div>
+    </div>
+
+    {% if step == 'questionnaire' %}
+        {% include "partials/releve_bloc_questionnaire.html" %}
+    {% elif step == 'produits' %}
+        {% include "partials/releve_bloc_produits.html" %}
+    {% elif step == 'concurrence' %}
+        {% include "partials/releve_bloc_concurrence.html" %}
+    {% elif step == 'final' %}
+        {% include "partials/releve_bloc_final.html" %}
+    {% endif %}
+</div>
+
+{% endblock %}

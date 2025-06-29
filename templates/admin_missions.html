@@ -1,0 +1,127 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container-xl">
+
+    <!-- Bandeau magique -->
+    <div class="alert alert-success mb-4">
+        <h4 class="alert-heading">🚀 Lancez la création complète de votre mission</h4>
+        <p style="font-size: 0.95rem;">
+            En suivant ce parcours guidé, vous pourrez construire votre opération de A à Z :
+            mission, utilisateurs, questionnaires, magasins... tout en gardant une liberté totale d'accès aux modules indépendants !
+        </p>
+        <hr>
+        <div class="row text-center">
+            <div class="col-md-3">
+                <i class="bi bi-flag-fill" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Mission</h6>
+                <p style="font-size: 0.8rem;">
+                    <a href="/admin/missions" class="text-decoration-none">Créer ou éditer une mission</a>
+                </p>
+            </div>
+            <div class="col-md-3">
+                <i class="bi bi-person-fill" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Utilisateurs</h6>
+                <p style="font-size: 0.8rem;">
+                    <a href="/admin/utilisateurs" class="text-decoration-none">Ajouter ou gérer les utilisateurs</a>
+                </p>
+            </div>
+            <div class="col-md-3">
+                <i class="bi bi-card-checklist" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Questionnaires</h6>
+                <p style="font-size: 0.8rem;">
+                    <a href="/admin/questionnaires" class="text-decoration-none">Créer vos questionnaires</a>
+                </p>
+            </div>
+            <div class="col-md-3">
+                <i class="bi bi-shop" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Magasins</h6>
+                <p style="font-size: 0.8rem;">
+                    (à venir) Importer ou saisir vos magasins
+                </p>
+            </div>
+        </div>
+        <div class="d-grid mt-4">
+            <a href="/admin/creation-rapide" class="btn btn-lg btn-success">
+                ✨ Lancer la création complète
+            </a>
+        </div>
+    </div>
+
+    <!-- Titre + Boutons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Missions</h2>
+        <div>
+            <a href="/admin/missions/create" class="btn btn-primary">+ Nouvelle mission</a>
+        </div>
+    </div>
+
+    <!-- Boutons filtres -->
+    <div class="btn-group mb-4 shadow-sm" role="group" aria-label="Filtrer missions">
+        <a href="{{ url_for('admin_missions') }}" class="btn btn-outline-secondary {% if not filter %}active{% endif %}">Toutes</a>
+        <a href="{{ url_for('admin_missions', statut='active') }}" class="btn btn-outline-success {% if filter == 'active' %}active{% endif %}">✅ Actives</a>
+        <a href="{{ url_for('admin_missions', statut='cloturee') }}" class="btn btn-outline-danger {% if filter == 'cloturee' %}active{% endif %}">🛑 Clôturées</a>
+    </div>
+
+    <!-- Table des missions -->
+    {% if missions %}
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Période</th>
+                <th>Statut</th>
+                <th>Secteurs</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for mission in missions %}
+            <tr>
+                <td>{{ mission.nom }}</td>
+                <td>{{ mission.date_debut.strftime('%d/%m/%Y') }} - {{ mission.date_fin.strftime('%d/%m/%Y') }}</td>
+                <td>{{ mission.statut }}</td>
+                <td>
+                    {% if mission.secteurs %}
+                        <span data-bs-toggle="tooltip" title="{{ mission.secteurs|map(attribute='nom')|join(', ') }}">
+<span title="{{ mission.secteurs_list | map(attribute='nom') | join(', ') }}">
+    {{ mission.secteurs_list | length }} secteur{{ 's' if mission.secteurs_list | length > 1 }}
+</span>
+                        </span>
+                    {% else %}
+                        <span class="text-muted">–</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form action="{{ url_for('toggle_mission_active', mission_id=mission.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="checkbox" name="active" onchange="this.form.submit()" {% if mission.statut == 'active' %}checked{% endif %}>
+                    </form>
+                </td>
+                <td>
+                    <a href="{{ url_for('mission_detail', mission_id=mission.id) }}" class="btn btn-sm btn-info">Détails</a>
+                    <a href="{{ url_for('edit_mission', mission_id=mission.id) }}" class="btn btn-sm btn-warning">Modifier</a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">Aucune mission pour le moment.</div>
+    {% endif %}
+
+</div>
+
+<!-- Script pour activer les tooltips Bootstrap -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+});
+</script>
+{% endblock %}

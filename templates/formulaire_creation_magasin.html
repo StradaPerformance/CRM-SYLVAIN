@@ -1,0 +1,276 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">➕ Créer un nouveau magasin</h2>
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="row">
+      <!-- Mission -->
+      <div class="col-md-6 mb-3">
+        <label for="mission_id" class="form-label">🎯 Mission</label>
+        <select class="form-select" id="mission_id" name="mission_id" onchange="handleMissionChange()" required>
+          <option value="">-- Sélectionner une mission --</option>
+          {% for m in missions %}
+            <option value="{{ m.id }}" {% if mission_id == m.id %}selected{% endif %}>{{ m.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Secteur -->
+      <div class="col-md-6 mb-3">
+        <label for="secteur_id" class="form-label">👥 Secteur rattaché</label>
+        <select class="form-select" id="secteur_id" name="secteur_id" required disabled>
+          <option value="">-- Sélectionner un secteur --</option>
+          <!-- Dynamique -->
+        </select>
+      </div>
+
+      <!-- Nom magasin -->
+      <div class="col-md-6 mb-3">
+        <label for="nom" class="form-label">🏪 Nom du magasin</label>
+        <input type="text" class="form-control" id="nom" name="nom" required>
+      </div>
+
+      <!-- Téléphone -->
+      <div class="col-md-6 mb-3">
+        <label for="telephone" class="form-label">📞 Téléphone</label>
+        <input type="text" class="form-control" id="telephone" name="telephone">
+      </div>
+
+      <!-- Adresse -->
+      <div class="col-md-6 mb-3">
+        <label for="adresse" class="form-label">📍 Adresse</label>
+        <input type="text" class="form-control" id="adresse" name="adresse">
+      </div>
+
+      <!-- Fax -->
+      <div class="col-md-6 mb-3">
+        <label for="fax" class="form-label">📠 Fax</label>
+        <input type="text" class="form-control" id="fax" name="fax">
+      </div>
+
+      <!-- Code postal -->
+      <div class="col-md-6 mb-3">
+        <label for="code_postal" class="form-label">📬 Code postal</label>
+        <input type="text" class="form-control" id="code_postal" name="code_postal">
+      </div>
+
+      <!-- Ville -->
+      <div class="col-md-6 mb-3">
+        <label for="ville" class="form-label">🌇 Ville</label>
+        <input type="text" class="form-control" id="ville" name="ville">
+      </div>
+
+      <!-- Code TDLink -->
+      <div class="col-md-6 mb-3">
+        <label for="code_tdlink" class="form-label">🔗 Code TDLink</label>
+        <input type="text" class="form-control" id="code_tdlink" name="code_tdlink">
+      </div>
+
+      <!-- PIP (potentiel) -->
+      <div class="col-md-6 mb-3">
+        <label for="potentiel" class="form-label">💰 Potentiel (PIP)</label>
+        <input type="text" class="form-control" id="potentiel" name="potentiel">
+      </div>
+
+      <!-- Typologie -->
+      <div class="col-md-6 mb-3">
+        <label for="typologie" class="form-label">📂 Typologie</label>
+        <input type="text" class="form-control" id="typologie" name="typologie">
+      </div>
+
+      <!-- Surface -->
+      <div class="col-md-6 mb-3">
+        <label for="surface" class="form-label">📀 Surface (m²)</label>
+        <input type="text" class="form-control" id="surface" name="surface">
+      </div>
+
+      <!-- Statut spécial -->
+      <div class="col-md-6 mb-3">
+        <label for="statut_special" class="form-label">📌 Statut spécial</label>
+        <input type="text" class="form-control" id="statut_special" name="statut_special">
+      </div>
+
+      <!-- Enseigne -->
+      <div class="col-md-6 mb-3">
+        <label for="enseigne" class="form-label">🛍 Enseigne</label>
+        <select class="form-select" id="enseigne" name="enseigne" required disabled onchange="updateCentralesAndStrates()">
+          <option value="">-- Sélectionner une enseigne --</option>
+          {% for e in enseignes %}
+            <option value="{{ e }}">{{ e }}</option>
+          {% endfor %}
+        </select>
+        <small class="text-muted">Si elle n’apparaît pas, créez-la depuis le menu « Enseignes ».</small>
+      </div>
+
+      <!-- Centrale -->
+      <div class="col-md-6 mb-3">
+        <label for="centrale" class="form-label">🏢 Centrale</label>
+        <select class="form-select" id="centrale" name="centrale" disabled>
+          <option value="">-- Sélectionner une centrale --</option>
+        </select>
+        <small class="text-muted">Si elle n’apparaît pas, créez-la depuis le menu « Centrales ».</small>
+      </div>
+
+      <!-- Strate -->
+      <div class="col-md-6 mb-3">
+        <label for="strate_magasin" class="form-label">📊 Strate</label>
+        <select class="form-select" id="strate_magasin" name="strate_magasin" disabled>
+          <option value="">-- Sélectionner une strate --</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="row mt-4">
+      <h5 class="mb-3">🧑‍💼 Contact magasin</h5>
+
+      <div class="col-md-4 mb-3">
+        <label for="nom_contact" class="form-label">Nom du contact</label>
+        <input type="text" class="form-control" id="nom_contact" name="nom_contact">
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label for="tel_contact" class="form-label">Téléphone contact</label>
+        <input type="text" class="form-control" id="tel_contact" name="tel_contact">
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label for="email_contact" class="form-label">Email contact</label>
+        <input type="email" class="form-control" id="email_contact" name="email_contact">
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-3 mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="vip" name="vip">
+        <label class="form-check-label" for="vip">⭐ VIP</label>
+      </div>
+
+      <div class="col-md-3 mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="actif" name="actif" checked>
+        <label class="form-check-label" for="actif">✅ Actif</label>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-outline-dark mt-3">📂 Enregistrer le magasin</button>
+    <a href="{{ url_for('admin_magasins') }}" class="btn btn-link mt-3">⬅ Retour à la liste</a>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function handleMissionChange() {
+  const missionId = document.getElementById('mission_id').value;
+  const secteurSelect = document.getElementById('secteur_id');
+  const enseigneSelect = document.getElementById('enseigne');
+  const centraleSelect = document.getElementById('centrale');
+  const strateSelect = document.getElementById('strate_magasin');
+
+  // Reset et désactive tout au départ
+  secteurSelect.innerHTML = '<option value="">-- Sélectionner un secteur --</option>';
+  secteurSelect.disabled = true;
+  enseigneSelect.innerHTML = '<option value="">-- Sélectionner une enseigne --</option>';
+  enseigneSelect.disabled = true;
+  centraleSelect.innerHTML = '<option value="">-- Sélectionner une centrale --</option>';
+  centraleSelect.disabled = true;
+  strateSelect.innerHTML = '<option value="">-- Sélectionner une strate --</option>';
+  strateSelect.disabled = true;
+
+  if (!missionId) return;
+
+  // Récupérer les secteurs liés à la mission (avec chefs)
+  fetch(`/get_secteurs?mission_id=${missionId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        secteurSelect.disabled = false;
+        data.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.nom + (s.chef ? ` – ${s.chef.prenom} ${s.chef.nom}` : '');
+          secteurSelect.appendChild(opt);
+        });
+      }
+    })
+    .catch(err => console.error('Erreur chargement secteurs:', err));
+
+  // Récupérer les enseignes liées à la mission
+  fetch(`/get_enseignes?mission_id=${missionId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        enseigneSelect.disabled = false;
+        data.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = e;
+          opt.textContent = e;
+          enseigneSelect.appendChild(opt);
+        });
+      }
+    })
+    .catch(err => console.error('Erreur chargement enseignes:', err));
+}
+
+function updateCentralesAndStrates() {
+  const enseigne = document.getElementById('enseigne').value;
+  const missionId = document.getElementById('mission_id').value;
+  const centraleSelect = document.getElementById('centrale');
+  const strateSelect = document.getElementById('strate_magasin');
+
+  centraleSelect.innerHTML = '<option value="">-- Sélectionner une centrale --</option>';
+  strateSelect.innerHTML = '<option value="">-- Sélectionner une strate --</option>';
+
+  centraleSelect.disabled = true;
+  strateSelect.disabled = true;
+
+  if (!enseigne || !missionId) return;
+
+  fetch(`/get_centrales/${encodeURIComponent(enseigne)}?mission_id=${missionId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        centraleSelect.disabled = false;
+        data.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          centraleSelect.appendChild(opt);
+        });
+      }
+    })
+    .catch(err => console.error('Erreur chargement centrales:', err));
+
+  fetch(`/get_strates/${encodeURIComponent(enseigne)}?mission_id=${missionId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        strateSelect.disabled = false;
+        data.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          strateSelect.appendChild(opt);
+        });
+      }
+    })
+    .catch(err => console.error('Erreur chargement strates:', err));
+}
+
+// Initialisation au chargement si mission déjà sélectionnée
+window.addEventListener('load', () => {
+  const missionSelect = document.getElementById('mission_id');
+  if (missionSelect.value) {
+    handleMissionChange();
+
+    const enseigneSelect = document.getElementById('enseigne');
+    if (enseigneSelect.value) {
+      updateCentralesAndStrates();
+    }
+  }
+});
+</script>
+{% endblock %}

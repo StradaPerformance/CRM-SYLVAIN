@@ -1,0 +1,142 @@
+{% extends 'layout.html' %}
+{% block content %}
+<style>
+.drag-handle {
+  cursor: move;
+  font-size: 18px;
+  color: #888;
+}
+#sortable-body td {
+  user-select: none;
+}
+.sortable-placeholder {
+  height: 40px;
+  background-color: #f2f2f2;
+  border: 2px dashed #ccc;
+}
+</style>
+
+
+<h2 class="mb-4">📋 Liste des questions</h2>
+
+<form method="GET" action="{{ url_for('admin_questions') }}" class="mb-4">
+  <label for="questionnaire_id" class="form-label">🎯 Filtrer par questionnaire</label>
+  <div class="d-flex gap-3 align-items-end">
+    <select name="questionnaire_id" id="questionnaire_id" class="form-select" onchange="this.form.submit()">
+      <option value="">-- Choisir un questionnaire (missions actives) --</option>
+      {% for q, mission in questionnaires %}
+        <option value="{{ q.id }}" {% if q.id == selected_questionnaire_id %}selected{% endif %}>
+          {{ mission.nom }} — {{ q.nom }}
+        </option>
+      {% endfor %}
+    </select>
+    {% if selected_questionnaire_id %}
+      <a class="btn btn-outline-primary" href="{{ url_for('create_question') }}?questionnaire_id={{ selected_questionnaire_id }}">
+        ➕ Créer une question
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+
+<hr class="my-4">
+<h3>🧩 Aperçu des questions</h3>
+
+{% if questions %}
+<table class="table table-hover" id="sortable-table">
+  <thead>
+    <tr>
+      <th style="width: 30px;"></th>
+      <th>ID</th>
+      <th>Ordre</th>
+      <th>Intitulé</th>
+      <th>Type</th>
+      <th>Options</th>
+      <th>Min</th>
+      <th>Max</th>
+      <th>Libre</th>
+      <th>Conditionnelle</th>
+      <th>Parent</th>
+      <th>Valeur attendue</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="sortable-body">
+    {% for question in questions %}
+    <tr data-id="{{ question.id }}">
+      <td class="drag-handle text-center" title="Glisser pour déplacer"><i class="bi bi-grip-vertical"></i></td>
+      <td>{{ question.id }}</td>
+    
+      <td>{{ question.ordre }}</td>
+      <td>{{ question.contenu }}</td>
+      <td>{{ question.type_reponse }}</td>
+      <td>
+        {% for r in question.reponses %}{{ r.contenu }}{% if not loop.last %} ; {% endif %}{% endfor %}
+      </td>
+      <td>{{ question.nb_min }}</td>
+      <td>{{ question.nb_max }}</td>
+      <td>{{ 'Oui' if question.autre_reponse else 'Non' }}</td>
+      <td>{{ 'Oui' if question.condition else 'Non' }}</td>
+      <td>{{ question.condition.question_parent_id if question.condition else '-' }}</td>
+      <td>{{ question.condition.reponse_parent if question.condition else '-' }}</td>
+      <td>
+        <a href="{{ url_for('edit_question', question_id=question.id) }}" class="btn btn-sm btn-outline-primary">✏️</a>
+      <form method="POST" action="{{ url_for('delete_question', question_id=question.id) }}" style="display:inline;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer cette question ?')">🗑️</button>
+</form>
+
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Aucune question encore enregistrée pour ce questionnaire.</p>
+{% endif %}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script>
+$(function() {
+  $("#sortable-body").sortable({
+    handle: ".drag-handle",
+    helper: "clone",
+    placeholder: "sortable-placeholder",
+    forcePlaceholderSize: true,
+    update: function(event, ui) {
+      const ordre = [];
+      $("#sortable-body tr").each(function(index) {
+        ordre.push({
+          id: $(this).data("id"),
+          new_ordre: index + 1
+        });
+      });
+
+      fetch("/admin/questions/reorder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ ordre })
+      }).then(res => {
+        if (res.ok) {
+          $("#sortable-body tr").each(function(index) {
+            $(this).find("td:nth-child(3)").text(index + 1);
+          });
+        }
+      });
+    }
+  });
+});
+</script>
+<style>
+.sortable-placeholder {
+  height: 40px;
+  background-color: #f2f2f2;
+  border: 2px dashed #ccc;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<!-- 🌐 Styles locaux -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap');
+  body {
+    background-color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    color: #333;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab-link {
+    padding: 1rem 0;
+    font-weight: 500;
+    color: #444;
+    position: relative;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .tab-link::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 0;
+    left: 0;
+    bottom: 0;
+    background-color: #d80c45;
+    transition: width 0.3s ease;
+  }
+  .tab-link:hover::after,
+  .tab-link.active::after {
+    width: 100%;
+  }
+  .tab-link:hover,
+  .tab-link.active {
+    color: #d80c45;
+  }
+  .container-questions {
+    padding: 1rem;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .table {
+    margin-top: 1.5rem;
+  }
+  .table thead {
+    background-color: #f9f9f9;
+  }
+  .table td, .table th {
+    vertical-align: middle;
+  }
+  select.form-select {
+    max-width: 100%;
+  }
+  .btn-outline-dark {
+    border-color: #d80c45;
+    color: #d80c45;
+  }
+  .btn-outline-dark:hover {
+    background-color: #d80c45;
+    color: white;
+  }
+</style>
+
+<!-- ✅ Barre d’onglets -->
+<div class="tab-bar">
+  <a href="{{ url_for('admin_questionnaires') }}" class="tab-link active">📋 Questionnaires</a>
+  <a href="{{ url_for('admin_questions') }}" class="tab-link">🧠 Questions</a>
+ <a href="{{ url_for('simuler_questionnaire_depuis_admin') }}" class="tab-link {% if request.endpoint == 'simuler_questionnaire_depuis_admin' %}active{% endif %}">🎯 Simulation</a>
+  <a href="{{ url_for('questionnaire_graph') }}" class="tab-link">🔍 Carte des liens</a>
+</div>
+
+<!-- ✅ Contenu principal -->
+<div class="container container-questions mt-4">
+  <h2 class="mb-4">📋 Gestion des questionnaires</h2>
+
+  <!-- Formulaire de création -->
+  <form method="POST" class="mb-4 p-3 border rounded">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="mb-3">
+      <label for="nom" class="form-label">Nom du questionnaire</label>
+      <input type="text" class="form-control" id="nom" name="nom" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="mission_id" class="form-label">Mission associée</label>
+      <select class="form-select" name="mission_id" id="mission_id" required onchange="updateUsersByMission()">
+        <option value="">-- Choisir une mission --</option>
+        {% for mission in missions %}
+          <option value="{{ mission.id }}">{{ mission.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="utilisateurs" class="form-label">Utilisateurs à affecter</label>
+      <select class="form-select" name="utilisateurs" id="utilisateurs" multiple>
+        <!-- Dynamique via JS -->
+      </select>
+    </div>
+
+<div class="mb-3">
+  <label for="enseignes" class="form-label">Enseignes concernées</label>
+  <select class="form-select" name="enseignes" id="enseignes" required>
+    <option value="">-- Choisir une enseigne --</option>
+    {% for enseigne in enseignes %}
+      <option value="{{ enseigne.nom }}">{{ enseigne.nom }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+
+    <button type="submit" class="btn btn-primary">Créer le questionnaire</button>
+  </form>
+
+  <script>
+    const utilisateursParMission = {
+      {% for mission in missions %}
+      "{{ mission.id }}": [
+           {% for user in utilisateurs if user.mission_id == mission.id %}
+             { id: {{ user.id }}, nom: "{{ user.nom }}" }{% if not loop.last %},{% endif %}
+         {% endfor %}
+             ]{% if not loop.last %},{% endif %}
+      {% endfor %}
+    };
+
+    function updateUsersByMission() {
+      const missionId = document.getElementById("mission_id").value;
+      const select = document.getElementById("utilisateurs");
+      select.innerHTML = "";
+      if (utilisateursParMission[missionId]) {
+        utilisateursParMission[missionId].forEach(user => {
+          const option = document.createElement("option");
+          option.value = user.id;
+          option.textContent = user.nom;
+          select.appendChild(option);
+        });
+      }
+    }
+  </script>
+
+  <!-- Tableau des questionnaires existants -->
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Mission</th>
+        <th>Enseigne</th>
+        <th>Date de création</th>
+        <th>Date de modification</th>
+        <th>Utilisateurs associés</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for questionnaire in questionnaires %}
+        <tr>
+          <td>{{ questionnaire.nom }}</td>
+          <td>
+  {% if questionnaire.mission %}
+    {{ questionnaire.mission.nom }}
+  {% else %}
+    <span class="text-danger">❌ Aucune mission</span>
+  {% endif %}
+</td>
+<td>
+  {% if questionnaire.enseignes_associees %}
+    {{ questionnaire.enseignes_associees[0].enseigne }}
+  {% else %}
+    <span class="text-danger">❌ Aucune enseigne</span>
+  {% endif %}
+</td>
+
+          <td>{{ questionnaire.date_creation.strftime('%Y-%m-%d %H:%M:%S') if questionnaire.date_creation else '-' }}</td>
+          <td>{{ questionnaire.date_modification.strftime('%Y-%m-%d %H:%M:%S') if questionnaire.date_modification else '-' }}</td>
+          <td>
+            <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modal_{{ questionnaire.id }}">
+              👥 Voir
+            </button>
+          </td>
+          <td>
+  <a href="{{ url_for('edit_questionnaire', questionnaire_id=questionnaire.id) }}" class="btn btn-sm btn-outline-dark">✏️ Modifier</a>
+  <a href="{{ url_for('admin_questions') }}?questionnaire_id={{ questionnaire.id }}" class="btn btn-sm btn-outline-primary">➕ Ajouter une question</a>
+  <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDelete_{{ questionnaire.id }}">🗑️ Supprimer</button>
+</td>
+
+
+        <!-- Modal utilisateurs -->
+        <div class="modal fade" id="modal_{{ questionnaire.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Utilisateurs de « {{ questionnaire.nom }} »</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+              </div>
+              <div class="modal-body">
+                {% if questionnaire.utilisateurs %}
+                  <ul class="list-group">
+                    {% for user in questionnaire.utilisateurs %}
+                      <li class="list-group-item">{{ user.nom }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="text-muted">Aucun utilisateur associé.</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal suppression -->
+        <div class="modal fade" id="confirmDelete_{{ questionnaire.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <form method="POST" action="{{ url_for('delete_questionnaire', questionnaire_id=questionnaire.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                  <h5 class="modal-title text-danger">⚠️ Supprimer ce questionnaire ?</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                  <p>Cette action supprimera définitivement le questionnaire <strong>{{ questionnaire.nom }}</strong> ainsi que toutes les questions associées.</p>
+                  <p class="text-danger">⚠️ Cette action est irréversible.</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <button type="submit" class="btn btn-danger">Confirmer la suppression</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

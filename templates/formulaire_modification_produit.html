@@ -1,0 +1,73 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Modifier le Produit</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="mb-3">
+            <label for="libelle" class="form-label">Libellé du produit</label>
+            <input type="text" class="form-control" id="libelle" name="libelle" value="{{ produit.libelle }}" required>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="code_ean" class="form-label">Code EAN</label>
+                <input type="text" class="form-control" id="code_ean" name="code_ean" value="{{ produit.code_ean }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="code_interne" class="form-label">Code Interne</label>
+                <input type="text" class="form-control" id="code_interne" name="code_interne" value="{{ produit.code_interne }}">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="marque" class="form-label">Marque</label>
+            <input type="text" class="form-control" id="marque" name="marque" value="{{ produit.marque }}">
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="famille" class="form-label">Famille</label>
+                <input type="text" class="form-control" id="famille" name="famille" value="{{ produit.famille }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="gamme" class="form-label">Gamme</label>
+                <input type="text" class="form-control" id="gamme" name="gamme" value="{{ produit.gamme }}">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="typologie" class="form-label">Typologie</label>
+            <input type="text" class="form-control" id="typologie" name="typologie" value="{{ produit.typologie }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="missions" class="form-label">Associer à des missions :</label>
+            <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
+                {% for mission in missions if mission.active %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="missions" value="{{ mission.id }}" id="mission{{ mission.id }}"
+                               {% if mission.id in produit.missions_ids %}checked{% endif %}>
+                        <label class="form-check-label" for="mission{{ mission.id }}">{{ mission.nom }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="photo" class="form-label">Changer la photo (optionnel)</label>
+            <input class="form-control" type="file" id="photo" name="photo">
+            {% if produit.photo %}
+                <small class="text-muted d-block mt-1">Photo actuelle : {{ produit.photo }}</small>
+            {% endif %}
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('admin_produits') }}" class="btn btn-secondary">⬅️ Retour</a>
+            <button type="submit" class="btn btn-success">💾 Enregistrer les modifications</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">🔁 Vue des tunnels de relevé configurés</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <table class="table table-bordered table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Mission</th>
+        <th>ID</th>
+        <th>Questionnaire</th>
+        <th>Produits</th>
+        <th>Concurrence</th>
+        <th>⚙️ Modifier</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for config in configs %}
+      <tr>
+        <td>{{ config.mission.nom }}</td>
+        <td>{{ config.mission_id }}</td>
+        <td>{{ "✅" if config.questionnaire else "❌" }}</td>
+        <td>{{ "✅" if config.produits else "❌" }}</td>
+        <td>{{ "✅" if config.concurrence else "❌" }}</td>
+        <td>
+          <a href="{{ url_for('admin_tunnel_releve') }}?mission_id={{ config.mission_id }}" class="btn btn-sm btn-secondary">
+            Modifier
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4 text-primary">🧪 Simulation d’un questionnaire</h2>
+
+    <form action="{{ url_for('lancer_simulation') }}" method="get" class="p-4 border rounded bg-light shadow-sm">
+        <div class="mb-3">
+            <label for="questionnaire_id" class="form-label fw-bold">Choisissez un questionnaire :</label>
+            <select name="questionnaire_id" id="questionnaire_id" class="form-select" required>
+                <option value="">-- Sélectionnez un questionnaire --</option>
+                {% for q in questionnaires %}
+                    <option value="{{ q.id }}">{{ q.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-success">🎯 Lancer la simulation</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

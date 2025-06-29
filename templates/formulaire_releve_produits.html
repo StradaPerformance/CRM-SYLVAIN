@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2 class="mb-4">📦 Relevé Produits - {{ magasin.nom }}</h2>
+
+<form method="POST" action="">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Présent</th>
+        <th>Prix</th>
+        <th>Facings</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for produit in produits %}
+      <tr>
+        <td>{{ produit.libelle }}</td>
+        <td><input type="checkbox" name="produit_{{ produit.id }}_present"></td>
+        <td><input type="number" step="0.01" name="produit_{{ produit.id }}_prix" class="form-control"></td>
+        <td><input type="number" name="produit_{{ produit.id }}_facings" class="form-control"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="mb-3">
+    <label for="commentaire_final" class="form-label">Commentaire final</label>
+    <textarea name="commentaire_final" id="commentaire_final" class="form-control" rows="3"></textarea>
+  </div>
+
+  <div class="d-flex gap-3">
+    <button type="submit" class="btn btn-success">📄 Finaliser le relevé</button>
+    <a href="{{ url_for('fiche_magasin', magasin_id=magasin.id) }}" class="btn btn-secondary">⬅️ Retour fiche magasin</a>
+  </div>
+</form>
+
+{% endblock %}

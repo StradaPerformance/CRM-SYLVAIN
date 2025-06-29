@@ -1,0 +1,90 @@
+fonction,route,methods
+"login,/login,""['GET', 'POST']"""
+logout,/logout,['GET']
+index,/,['GET']
+admin_questions,/admin/questions,['GET']
+reorder_questions,/admin/questions/reorder,['POST']
+"create_question,/admin/questions/create,""['GET', 'POST']"""
+simulation_selection,/simulation,['GET']
+delete_question,/admin/questions/delete/<int:question_id>,['POST']
+"edit_question,/admin/questions/edit/<int:question_id>,""['GET', 'POST']"""
+analyse,/analyse,['GET']
+simuler_questionnaire_depuis_admin,/admin/simulation-questionnaire,['GET']
+lancer_simulation,/simulation/lancer,['GET']
+"simulation_question,/simulation/<int:questionnaire_id>/question/<int:index>,""['GET', 'POST']"""
+"admin_questionnaires,/admin/questionnaires,""['GET', 'POST']"""
+questionnaire_graph,/admin/questionnaires/graph,['GET']
+api_graph_questionnaires,/api/graph_questionnaires,['GET']
+associer_enseignes_questionnaire,/admin/questionnaires/associer-enseignes,['POST']
+delete_questionnaire,/admin/questionnaires/delete/<int:questionnaire_id>,['POST']
+"edit_questionnaire,/admin/questionnaires/edit/<int:questionnaire_id>,""['GET', 'POST']"""
+afficher_utilisateurs,/admin/utilisateurs,['GET']
+"create_user,/admin/utilisateurs/create,""['GET', 'POST']"""
+delete_user,/admin/utilisateurs/delete/<int:user_id>,['GET']
+toggle_user_status,/admin/utilisateurs/toggle/<int:user_id>,['GET']
+export_utilisateurs,/admin/utilisateurs/export,['GET']
+"edit_user,/admin/utilisateurs/<int:user_id>/edit,""['GET', 'POST']"""
+admin_missions,/admin/missions,['GET']
+"create_mission,/admin/missions/create,""['GET', 'POST']"""
+toggle_mission_active,/admin/missions/<int:mission_id>/toggle-active,['POST']
+mission_detail,/admin/missions/<int:mission_id>,['GET']
+"edit_mission,/admin/missions/<int:mission_id>/edit,""['GET', 'POST']"""
+archive_mission,/admin/missions/<int:mission_id>/archive,['POST']
+"assign_users_to_mission,/admin/missions/<int:mission_id>/assign-users,""['GET', 'POST']"""
+"creation_rapide,/admin/creation-rapide,""['GET', 'POST']"""
+"admin_mission_enseignes,/admin/missions/<int:mission_id>/enseignes,""['GET', 'POST']"""
+toggle_enseigne_mission,/admin/missions/<int:mission_id>/enseignes/<int:enseigne_id>/<action>,['GET']
+mission_enseigne_centrales,/admin/missions/<int:mission_id>/enseignes/<int:enseigne_id>/centrales,['GET']
+"create_centrale_for_enseigne_v2,/admin/missions/<int:mission_id>/enseignes/<int:enseigne_id>/centrales/create,""['GET', 'POST']"""
+admin_produits,/admin/produits,['GET']
+"create_produit,/admin/produits/create,""['GET', 'POST']"""
+"edit_produit,/admin/produits/<int:produit_id>/edit,""['GET', 'POST']"""
+delete_produit,/admin/produits/<int:produit_id>/delete,['POST']
+"affecter_produits_centrale,/admin/centrales/<int:centrale_id>/produits,""['GET', 'POST']"""
+afficher_associations,/admin/associations,['GET']
+"creer_association,/admin/associations/create,""['GET', 'POST']"""
+"modifier_association,/admin/associations/edit/<int:association_id>,""['GET', 'POST']"""
+supprimer_association,/admin/associations/delete/<int:association_id>,['GET']
+telecharger_template_association,/template-association,['GET']
+import_enseigne_centrale,/import_enseigne_centrale,['POST']
+admin_assortiments_unifie,/admin/assortiments,['GET']
+admin_assortiments_unifie,/admin/assortiments/<int:mission_id>,['GET']
+retirer_enseigne_mission,/admin/enseignes/<int:enseigne_id>/missions/<int:mission_id>/retirer,['POST']
+supprimer_enseigne_definitive,/admin/enseignes/<int:enseigne_id>/supprimer,['POST']
+assortiment_centrales_par_enseigne,/admin/assortiments/enseignes/<int:enseigne_id>/centrales,['GET']
+admin_enseignes,/admin/enseignes,['GET']
+formulaire_suppression_enseigne,/admin/enseignes/<int:enseigne_id>/delete-confirm,['GET']
+"create_enseigne,/admin/enseignes/create,""['GET', 'POST']"""
+recherche_logo,/api/recherche-logo,['GET']
+"modifier_enseigne,/admin/enseignes/<int:enseigne_id>/modifier,""['GET', 'POST']"""
+supprimer_enseigne,/admin/enseignes/<int:enseigne_id>/delete,['GET']
+associer_enseigne_a_mission,/admin/enseignes/associer,['POST']
+associer_enseigne_a_missions_superadmin,/admin/enseignes/<int:enseigne_id>/associer-missions,['POST']
+"create_centrale_for_enseigne,/admin/missions/<int:mission_id>/enseignes/<int:enseigne_id>/centrales/create,""['GET', 'POST']"""
+"edit_centrale,/admin/centrales/<int:centrale_id>/edit,""['GET', 'POST']"""
+delete_centrale,/admin/centrales/<int:centrale_id>/delete,['POST']
+"import_magasins,/admin/magasins/import,""['GET', 'POST']"""
+download_template_magasins,/admin/magasins/template,['GET']
+admin_magasins,/admin/magasins,['GET']
+export_magasins,/admin/magasins/export,['GET']
+"create_magasin,/admin/magasins/create,""['GET', 'POST']"""
+toggle_magasin,/admin/magasins/<int:magasin_id>/toggle,['POST']
+"edit_magasin,/admin/magasins/<int:magasin_id>/edit,""['GET', 'POST']"""
+api_search_magasin,/api/magasins/search,['GET']
+afficher_agenda_utilisateur,/admin/agenda/<int:user_id>,['GET']
+api_agenda_utilisateur,/api/agenda/<int:user_id>,['GET']
+api_autocomplete_magasins,/api/magasins/autocomplete,['GET']
+mes_magasins,/mes-magasins,['GET']
+admin_map,/admin/map,['GET']
+geocoder_magasins,/admin/magasins/geocoder,['GET']
+fiche_magasin,/magasin/<int:magasin_id>,['GET']
+"creation_releve_magasin,/magasin/<int:magasin_id>/visite/new,""['GET', 'POST']"""
+"repondre_question_releve,/releve/<int:releve_id>/question/<int:index>,""['GET', 'POST']"""
+"releve_produits,/releve/<int:releve_id>/produits,""['GET', 'POST']"""
+"releve_picking,/releve/<int:releve_id>/picking,""['GET', 'POST']"""
+"tunnel_releve,/releve/<int:releve_id>/etape/<int:index>,""['GET', 'POST']"""
+api_magasins,/api/magasins,['GET']
+audit_enseignes,/admin/audit_enseignes,['GET']
+associer_enseigne,/admin/associer_enseigne,['POST']
+"admin_tunnel_releve,/admin/tunnel_releve,""['GET', 'POST']"""
+admin_tunnel_releve_liste,/admin/tunnel_releve_liste,['GET']

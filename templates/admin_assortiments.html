@@ -1,0 +1,164 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<!-- Bandeau d'import -->
+<div class="alert alert-light border d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 p-3 gap-3">
+  <div>
+    <h5 class="mb-1">📥 Importer des associations Enseigne / Centrale</h5>
+    <small class="text-muted">
+      Utilisez un fichier Excel comportant deux colonnes : <code>enseigne</code> et <code>centrale</code>. <br>
+      Les doublons seront automatiquement filtrés. Les nouvelles enseignes ou centrales seront créées si besoin.
+    </small>
+  </div>
+  <div class="d-flex flex-column flex-md-row gap-2">
+    <a href="{{ url_for('telecharger_template_association') }}" class="btn btn-outline-secondary btn-sm">
+      📄 Télécharger le modèle
+    </a>
+    <form method="POST" action="{{ url_for('import_enseigne_centrale') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="file" name="fichier_excel" class="form-control" accept=".xlsx,.xls" required>
+      <button type="submit" class="btn btn-primary mt-2 mt-md-0">Importer</button>
+    </form>
+  </div>
+</div>
+
+<!-- Retour et création -->
+<div class="bg-white shadow-sm p-3 mb-4 sticky-top d-flex justify-content-between align-items-center">
+  <h5 class="mb-0">📦 Assortiments – Vue Super Admin</h5>
+  <a href="{{ url_for('admin_missions') }}" class="btn btn-outline-dark">↩️ Retour missions</a>
+</div>
+
+<a href="{{ url_for('create_enseigne') }}" class="btn btn-primary mb-3">➕ Créer une Enseigne</a>
+
+<!-- Filtres -->
+<div class="d-flex justify-content-between mb-4">
+  <div class="me-3">
+    <label class="form-label fw-bold">🎯 Filtrer par enseigne :</label>
+    <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
+      {% for e in toutes_les_enseignes %}
+      <div class="form-check">
+        <input class="form-check-input filtre-enseigne" type="checkbox" value="{{ e.id }}" id="e{{ e.id }}">
+        <label class="form-check-label" for="e{{ e.id }}">{{ e.nom }}</label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <a href="{{ url_for('admin_assortiments_unifie', filtrer='non') }}" class="btn btn-outline-secondary btn-sm mb-2">
+      Afficher toutes les enseignes
+    </a>
+    <br>
+    <a href="{{ url_for('admin_assortiments_unifie', filtrer='oui') }}" class="btn btn-outline-secondary btn-sm">
+      Filtrer les enseignes actives
+    </a>
+  </div>
+
+  <div>
+    <label class="form-label fw-bold">🗂️ Filtrer par mission :</label>
+    <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
+      {% for m in toutes_les_missions %}
+      <div class="form-check">
+        <input class="form-check-input filtre-mission" type="checkbox" value="{{ m.id }}" id="m{{ m.id }}">
+        <label class="form-check-label" for="m{{ m.id }}">{{ m.nom }}</label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Logos des enseignes -->
+<div class="row">
+  {% for enseigne in enseignes %}
+  <div class="col-md-3 mb-4 logo-enseigne" data-enseigne-id="{{ enseigne.id }}">
+    <div class="card h-100 shadow-sm text-center">
+      <div class="card-body">
+        <a href="{{ url_for('mission_enseigne_centrales', mission_id=1, enseigne_id=enseigne.id) }}" style="text-decoration: none; color: inherit;">
+          {% if enseigne.logo %}
+            <img src="{{ url_for('static', filename='uploads/' ~ enseigne.logo) }}" class="img-fluid mb-3" style="max-height: 100px;">
+          {% else %}
+            <div class="text-muted">[Logo manquant]</div>
+          {% endif %}
+          <h6>{{ enseigne.nom }}</h6>
+        </a>
+
+        <div class="d-flex justify-content-center gap-2 mt-2">
+          <a href="{{ url_for('modifier_enseigne', enseigne_id=enseigne.id) }}" class="btn btn-sm btn-outline-primary">✏️</a>
+          <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalSuppression{{ enseigne.id }}">🗑️</button>
+          <button class="btn btn-sm btn-outline-secondary toggle-missions" data-id="{{ enseigne.id }}">🔗</button>
+        </div>
+
+        <div class="px-3 pb-3 missions-list" id="missions-list-{{ enseigne.id }}" style="display: none;">
+          <hr>
+          <p class="text-start fw-bold">Associer à des missions :</p>
+          <form method="POST" action="{{ url_for('associer_enseigne_a_missions_superadmin', enseigne_id=enseigne.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="enseigne_id" value="{{ enseigne.id }}">
+            {% for mission in toutes_les_missions %}
+              <label>
+                <input type="checkbox" name="missions" value="{{ mission.id }}"
+                  {% if mission.id in enseigne.missions_ids %}checked{% endif %}>
+                {{ mission.nom }}
+              </label><br>
+            {% endfor %}
+            <button type="submit" class="btn btn-sm btn-success mt-2">💾 Enregistrer</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal suppression -->
+  <div class="modal fade" id="modalSuppression{{ enseigne.id }}" tabindex="-1" aria-labelledby="modalLabel{{ enseigne.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="modalLabel{{ enseigne.id }}">Supprimer l'enseigne ?</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <p>Souhaites-tu vraiment supprimer <strong>{{ enseigne.nom }}</strong> de la base ?</p>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <form method="POST" action="{{ url_for('supprimer_enseigne_definitive', enseigne_id=enseigne.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <a href="{{ url_for('formulaire_suppression_enseigne', enseigne_id=enseigne.id) }}" class="btn btn-sm btn-outline-danger">🗑️</a>
+          </form>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- JS : Filtres -->
+<script>
+function filtrerEnseignes() {
+  const enseignesFiltrees = Array.from(document.querySelectorAll('.filtre-enseigne:checked')).map(e => parseInt(e.value));
+  const missionsFiltrees = Array.from(document.querySelectorAll('.filtre-mission:checked')).map(m => parseInt(m.value));
+
+  document.querySelectorAll('.logo-enseigne').forEach(card => {
+    const id = parseInt(card.dataset.enseigneId);
+    const enseigneOk = enseignesFiltrees.length === 0 || enseignesFiltrees.includes(id);
+    const missionCheckboxes = Array.from(card.querySelectorAll('input[name="missions"]'));
+    const missionIdActuelle = {{ mission_id | default('null') | tojson }};
+    const missionOk = missionsFiltrees.length === 0 || missionCheckboxes.some(cb => missionsFiltrees.includes(parseInt(cb.value)) && cb.checked);
+    card.style.display = enseigneOk && missionOk ? 'block' : 'none';
+  });
+}
+
+document.querySelectorAll('.filtre-enseigne, .filtre-mission').forEach(cb => {
+  cb.addEventListener('change', filtrerEnseignes);
+});
+
+document.querySelectorAll('.toggle-missions').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.id;
+    const bloc = document.getElementById(`missions-list-${id}`);
+    bloc.style.display = bloc.style.display === 'none' ? 'block' : 'none';
+  });
+});
+</script>
+
+{% endblock %}

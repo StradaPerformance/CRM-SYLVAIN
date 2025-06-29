@@ -1,0 +1,139 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">{{ "Modifier" if user else "Ajouter" }} un utilisateur</h2>
+
+    <form method="POST" action="{{ url_for('edit_user', user_id=user.id) if user else url_for('create_user') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- Mission -->
+        <div class="mb-3">
+            <label for="mission_id" class="form-label">Mission</label>
+            <select class="form-select" name="mission_id" id="mission_id" required>
+                <option value="">-- Sélectionner une mission --</option>
+                {% for mission in missions %}
+                    <option value="{{ mission.id }}"
+                        {% if user and user.mission_id == mission.id %}selected{% endif %}>
+                        {{ mission.nom }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Secteur (chargé dynamiquement via JS) -->
+        <div class="mb-3">
+            <label for="secteur_id" class="form-label">Secteur</label>
+            <select class="form-select" name="secteur_id" id="secteur_id">
+                <option value="">-- Sélectionner un secteur --</option>
+                {% if user and user.secteur %}
+                    <option value="{{ user.secteur.id }}" selected>{{ user.secteur.nom }}</option>
+                {% endif %}
+            </select>
+        </div>
+
+        <!-- Nom -->
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="nom" name="nom" value="{{ user.nom if user else '' }}" required>
+        </div>
+
+        <!-- Prénom -->
+        <div class="mb-3">
+            <label for="prenom" class="form-label">Prénom *</label>
+            <input type="text" class="form-control" id="prenom" name="prenom" value="{{ user.prenom if user else '' }}" required>
+        </div>
+
+        <!-- Type utilisateur -->
+        <div class="mb-3">
+            <label for="type_utilisateur" class="form-label">Type d’utilisateur</label>
+            <select class="form-select" name="type_utilisateur" id="type_utilisateur">
+                <option value="terrain" {% if user and user.type_utilisateur == 'terrain' %}selected{% endif %}>Terrain</option>
+                <option value="responsable" {% if user and user.type_utilisateur == 'responsable' %}selected{% endif %}>Responsable</option>
+                <option value="admin" {% if user and user.type_utilisateur == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="superadmin" {% if user and user.type_utilisateur == 'superadmin' %}selected{% endif %}>Superadmin</option>
+            </select>
+        </div>
+
+        <!-- Email -->
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email" value="{{ user.email if user else '' }}" required>
+        </div>
+
+        <!-- Mot de passe -->
+        <div class="mb-3">
+            <label for="mot_de_passe" class="form-label">Mot de passe</label>
+            <input type="password" class="form-control" id="mot_de_passe" name="mot_de_passe" {{ 'required' if not user else '' }}>
+        </div>
+
+        <!-- Fonction -->
+        <div class="mb-3">
+            <label for="fonction" class="form-label">Fonction</label>
+            <input type="text" class="form-control" id="fonction" name="fonction" value="{{ user.fonction if user else '' }}">
+        </div>
+
+        <!-- Zone -->
+        <div class="mb-3">
+            <label for="zone" class="form-label">Zone</label>
+            <input type="text" class="form-control" id="zone" name="zone" value="{{ user.zone if user else '' }}">
+        </div>
+
+        <!-- Véhicule -->
+        <div class="mb-3">
+            <label for="vehicule" class="form-label">Véhicule</label>
+            <input type="text" class="form-control" id="vehicule" name="vehicule" value="{{ user.vehicule if user else '' }}">
+        </div>
+
+        <!-- Matricule -->
+        <div class="mb-3">
+            <label for="matricule" class="form-label">Matricule</label>
+            <input type="text" class="form-control" id="matricule" name="matricule" value="{{ user.matricule if user else '' }}">
+        </div>
+
+        <!-- Actif -->
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" value="1" id="actif" name="actif"
+                {% if user and user.actif %}checked{% endif %}>
+            <label class="form-check-label" for="actif">Actif</label>
+        </div>
+
+        <!-- Boutons -->
+        <button type="submit" class="btn btn-primary">{{ "Mettre à jour" if user else "Créer l'utilisateur" }}</button>
+        <a href="{{ url_for('afficher_utilisateurs') }}" class="btn btn-secondary">Annuler</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const missionSelect = document.getElementById('mission_id');
+        const secteurSelect = document.getElementById('secteur_id');
+
+        missionSelect.addEventListener('change', function () {
+            const missionId = missionSelect.value;
+            console.log("Mission sélectionnée :", missionId);
+            if (missionId) {
+                fetch(`/api/secteurs_par_mission/${missionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Secteurs reçus :", data);
+                        secteurSelect.innerHTML = '<option value="">-- Sélectionner un secteur --</option>';
+                        data.forEach(secteur => {
+                            const option = document.createElement('option');
+                            option.value = secteur.id;
+                            option.textContent = secteur.nom;
+                            secteurSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Erreur lors du chargement des secteurs :', error));
+            } else {
+                secteurSelect.innerHTML = '<option value="">-- Sélectionner un secteur --</option>';
+            }
+        });
+    });
+</script>
+{% endblock %}
+

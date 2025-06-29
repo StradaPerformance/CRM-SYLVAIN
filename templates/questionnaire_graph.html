@@ -1,0 +1,205 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<!-- ✅ Styles -->
+<style>
+  .tab-bar {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+  }
+
+  .tab-link {
+    padding: 1rem 0;
+    font-weight: 500;
+    color: #444;
+    position: relative;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .tab-link::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 0;
+    left: 0;
+    bottom: 0;
+    background-color: #d80c45;
+    transition: width 0.3s ease;
+  }
+
+  .tab-link:hover::after,
+  .tab-link.active::after {
+    width: 100%;
+  }
+
+  .tab-link:hover,
+  .tab-link.active {
+    color: #d80c45;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: center;
+  }
+
+  select.form-select {
+    width: 200px;
+  }
+</style>
+
+<!-- ✅ Barre d’onglets -->
+<div class="tab-bar">
+  <a href="{{ url_for('admin_questionnaires') }}" class="tab-link">📋 Questionnaires</a>
+  <a href="{{ url_for('admin_questions') }}" class="tab-link">🧠 Questions</a>
+  <a href="{{ url_for('simulation_selection') }}" class="tab-link">🎯 Simulation</a>
+  <a href="{{ url_for('questionnaire_graph') }}" class="tab-link active">🔍 Carte des liens</a>
+</div>
+
+<!-- ✅ Titre -->
+<div class="container mt-4">
+  <h2 class="mb-3">🔗 Carte des liens – Questionnaires / Enseignes / Utilisateurs</h2>
+
+  <!-- ✅ Filtres -->
+  <div class="filters">
+    <select class="form-select" id="missionFilter">
+      <option value="">Toutes les missions</option>
+      {% for mission in missions %}
+        <option value="{{ mission.nom }}">{{ mission.nom }}</option>
+      {% endfor %}
+    </select>
+
+    <select class="form-select" id="userFilter" disabled>
+      <option value="">Tous les utilisateurs</option>
+    </select>
+  </div>
+
+  <!-- ✅ Conteneur du graphe -->
+  <div id="cy" style="height: 80vh; border: 1px solid #ccc; border-radius: 8px;"></div>
+</div>
+
+<!-- ✅ Lib Cytoscape -->
+<script src="https://unpkg.com/cytoscape@3.24.0/dist/cytoscape.min.js"></script>
+
+<script>
+  let allElements = [];
+  let cy;
+
+  // Données brutes récupérées depuis Flask
+  fetch("/api/graph_questionnaires")
+    .then(res => res.json())
+    .then(data => {
+      allElements = data.elements;
+
+      cy = cytoscape({
+        container: document.getElementById('cy'),
+        elements: allElements,
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'label': 'data(label)',
+              'text-valign': 'center',
+              'color': '#fff',
+              'background-color': '#d80c45',
+              'text-outline-width': 2,
+              'text-outline-color': '#d80c45',
+              'font-size': 11,
+              'width': 80,
+              'height': 80,
+              'shape': 'roundrectangle'
+            }
+          },
+          {
+            selector: 'edge',
+            style: {
+              'width': 2,
+              'line-color': '#aaa',
+              'target-arrow-color': '#aaa',
+              'target-arrow-shape': 'triangle'
+            }
+          }
+        ],
+        layout: {
+          name: 'cose',
+          padding: 10
+        }
+      });
+    });
+
+  // 🎯 Filtres dynamiques
+  document.getElementById('missionFilter').addEventListener('change', () => {
+    const missionName = document.getElementById('missionFilter').value;
+    const userFilter = document.getElementById('userFilter');
+
+    // Mise à jour du select utilisateur
+    const users = new Set();
+    allElements.forEach(el => {
+      if (el.data.type === 'user' && (!missionName || el.data.mission === missionName)) {
+        users.add(el.data.label);
+      }
+    });
+
+    userFilter.innerHTML = '<option value="">Tous les utilisateurs</option>';
+    users.forEach(user => {
+      const opt = document.createElement('option');
+      opt.value = user;
+      opt.textContent = user;
+      userFilter.appendChild(opt);
+    });
+
+    userFilter.disabled = false;
+
+    applyFilters();
+  });
+
+  document.getElementById('userFilter').addEventListener('change', applyFilters);
+
+function applyFilters() {
+  const missionName = document.getElementById('missionFilter').value;
+  const userName = document.getElementById('userFilter').value;
+
+  const nodeIdsToKeep = new Set();
+
+  allElements.forEach(el => {
+    if (el.group === "nodes") {
+      const { type, label, mission, id } = el.data;
+
+      if (missionName && mission !== missionName) return;
+      if (userName && type === "user" && label !== userName) return;
+
+      nodeIdsToKeep.add(id);
+    }
+  });
+
+  const filteredElements = allElements.filter(el => {
+    if (el.group === "nodes") {
+      return nodeIdsToKeep.has(el.data.id);
+    }
+    if (el.group === "edges") {
+      return nodeIdsToKeep.has(el.data.source) && nodeIdsToKeep.has(el.data.target);
+    }
+    return false;
+  });
+
+  cy.elements().remove();
+  cy.add(filteredElements);
+  cy.layout({ name: 'cose', padding: 10 }).run();
+
+    // ✅ Bonus : message si aucun questionnaire nœud n’est présent
+  const hasQuestionnaire = filteredElements.some(el =>
+    el.group === "nodes" && el.data.type === "questionnaire"
+  );
+
+  if (!hasQuestionnaire) {
+    alert("🚫 Aucun questionnaire affiché avec ces filtres.");
+  }
+ }
+
+</script>
+{% endblock %}

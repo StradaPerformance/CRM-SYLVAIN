@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container">
+  <h2 class="mb-4">
+    🏢 Centrales régionales pour l’enseigne <strong>{{ enseigne.nom }}</strong>
+    <small class="text-muted">(mission : <em>{{ mission.nom }}</em>)</small>
+  </h2>
+
+  <div class="mb-3">
+    <a href="{{ url_for('create_centrale_for_enseigne', mission_id=mission.id, enseigne_id=enseigne.id) }}" class="btn btn-success">
+      ➕ Ajouter une centrale régionale
+    </a>
+  </div>
+
+  {% if centrales %}
+    <div class="row">
+      {% for centrale in centrales %}
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-body d-flex flex-column justify-content-between">
+              <div>
+                <h5 class="card-title">
+                  {{ centrale.nom }}
+                  <span class="badge bg-secondary">{{ centrale.type_centrale }}</span>
+                </h5>
+              </div>
+              <div class="mt-3 d-flex flex-column gap-2">
+                <!-- Bouton Modifier -->
+                <a href="{{ url_for('edit_centrale', centrale_id=centrale.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                  ✏️ Modifier
+                </a>
+
+                <!-- Bouton Produits par strate -->
+                <a href="{{ url_for('affecter_produits_centrale', centrale_id=centrale.id) }}" class="btn btn-sm btn-outline-success w-100">
+                  🧩 Associer produits par strate
+                </a>
+
+                <!-- Bouton Supprimer (ouvre la modale) -->
+                <button class="btn btn-sm btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#modalSuppressionCentrale{{ centrale.id }}">
+                  🗑️ Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modale de confirmation suppression -->
+          <div class="modal fade" id="modalSuppressionCentrale{{ centrale.id }}" tabindex="-1" aria-labelledby="modalLabelCentrale{{ centrale.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title" id="modalLabelCentrale{{ centrale.id }}">Supprimer la centrale ?</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                  <p>
+                    Souhaites-tu vraiment supprimer la centrale <strong>{{ centrale.nom }}</strong> ?<br>
+                    <em>⚠️ Elle sera supprimée pour l’ensemble des missions auxquelles elle est potentiellement liée.</em>
+                  </p>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                  <form method="POST" action="{{ url_for('delete_centrale', centrale_id=centrale.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-danger">🧨 Supprimer définitivement</button>
+                  </form>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">Aucune centrale rattachée à cette enseigne pour le moment.</div>
+  {% endif %}
+</div>
+{% endblock %}

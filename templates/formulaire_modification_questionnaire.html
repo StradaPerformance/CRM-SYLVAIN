@@ -1,0 +1,78 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<!-- 🌐 Styles locaux -->
+<style>
+  .form-section {
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    max-width: 700px;
+    margin: auto;
+  }
+
+  .btn-strada {
+    background-color: #d80c45;
+    color: white;
+    border: none;
+  }
+
+  .btn-strada:hover {
+    background-color: #b80a3a;
+  }
+</style>
+
+<div class="form-section">
+  <h3 class="mb-4">✏️ Modifier un questionnaire</h3>
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="mb-3">
+      <label for="nom" class="form-label">Nom du questionnaire</label>
+      <input type="text" class="form-control" name="nom" id="nom" value="{{ questionnaire.nom }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="mission_id" class="form-label">Mission associée</label>
+      <select class="form-select" name="mission_id" id="mission_id" required>
+        {% for mission in missions %}
+          <option value="{{ mission.id }}" {% if mission.id == questionnaire.mission_id %}selected{% endif %}>{{ mission.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Utilisateurs à affecter</label><br>
+      {% for user in utilisateurs %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="utilisateurs" value="{{ user.id }}"
+            id="user_{{ user.id }}" {% if user in questionnaire.utilisateurs %}checked{% endif %}>
+          <label class="form-check-label" for="user_{{ user.id }}">{{ user.nom }}</label>
+        </div>
+      {% endfor %}
+    </div>
+<div class="mb-3">
+  <label for="enseignes" class="form-label">Enseignes concernées</label>
+  <select name="enseignes" id="enseignes" class="form-select" multiple required>
+    {% for e in toutes_enseignes %}
+      <option value="{{ e.nom }}"
+        {% if e.nom in questionnaire.enseignes_associees | map(attribute='enseigne') | list %}
+          selected
+        {% endif %}>
+        {{ e.nom }}
+      </option>
+    {% endfor %}
+  </select>
+  <small class="text-muted">Maintenir Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs.</small>
+</div>
+
+
+
+    <button type="submit" class="btn btn-strada">💾 Enregistrer les modifications</button>
+    <a href="{{ url_for('admin_questionnaires') }}" class="btn btn-secondary">Annuler</a>
+  </form>
+</div>
+
+{% endblock %}

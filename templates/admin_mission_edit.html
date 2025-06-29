@@ -1,0 +1,91 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Modifier la mission : {{ mission.nom }}</h2>
+
+    <form method="POST" action="{{ url_for('edit_mission', mission_id=mission.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="nom" name="nom" value="{{ mission.nom }}" required>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="date_debut" class="form-label">Date de début</label>
+                <input type="date" class="form-control" id="date_debut" name="date_debut" value="{{ mission.date_debut|safe }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="date_fin" class="form-label">Date de fin</label>
+                <input type="date" class="form-control" id="date_fin" name="date_fin" value="{{ mission.date_fin|safe }}">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="statut" class="form-label">Statut</label>
+            <select class="form-select" id="statut" name="statut">
+                <option value="Préparation" {% if mission.statut == 'Préparation' %}selected{% endif %}>Préparation</option>
+                <option value="En cours" {% if mission.statut == 'En cours' %}selected{% endif %}>En cours</option>
+                <option value="Clôturée" {% if mission.statut == 'Clôturée' %}selected{% endif %}>Clôturée</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="objectif" class="form-label">Objectif</label>
+            <textarea class="form-control" id="objectif" name="objectif">{{ mission.objectif }}</textarea>
+        </div>
+
+        <div class="mb-3">
+            <label for="type" class="form-label">Type</label>
+            <input type="text" class="form-control" id="type" name="type" value="{{ mission.type }}">
+        </div>
+
+        <!-- Bloc Secteurs -->
+        <div class="mb-3">
+            <label class="form-label">Secteurs de la mission</label>
+            <div id="secteurs-container">
+                {% for secteur in mission.secteurs %}
+                    <div class="input-group mb-2 secteur-input">
+                        <input type="text" class="form-control" name="secteurs[]" value="{{ secteur.nom }}" required>
+                        <button type="button" class="btn btn-danger" onclick="removeSecteur(this)">✕</button>
+                    </div>
+                {% endfor %}
+{% set secteurs_list = mission.secteurs.all() %}
+{% if secteurs_list|length == 0 %}
+                    <div class="input-group mb-2 secteur-input">
+                        <input type="text" class="form-control" name="secteurs[]" placeholder="Ex : Auvergne-Rhône-Alpes" required>
+                        <button type="button" class="btn btn-danger" onclick="removeSecteur(this)">✕</button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addSecteur()">+ Ajouter un secteur</button>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+            <a href="{{ url_for('admin_missions') }}" class="btn btn-secondary">Retour</a>
+        </div>
+    </form>
+</div>
+
+<!-- JS pour ajouter/retirer les secteurs -->
+<script>
+    function addSecteur() {
+        const container = document.getElementById('secteurs-container');
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'input-group mb-2 secteur-input';
+        inputGroup.innerHTML = `
+            <input type="text" class="form-control" name="secteurs[]" placeholder="Ex : Normandie" required>
+            <button type="button" class="btn btn-danger" onclick="removeSecteur(this)">✕</button>
+        `;
+        container.appendChild(inputGroup);
+    }
+
+    function removeSecteur(button) {
+        const group = button.closest('.secteur-input');
+        if (group) group.remove();
+    }
+</script>
+{% endblock %}

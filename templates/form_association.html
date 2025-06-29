@@ -1,0 +1,52 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ 'Modifier' if association else 'Créer' }} une association</h2>
+
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="mb-3">
+            <label for="produit_id" class="form-label">Produit</label>
+            <select name="produit_id" id="produit_id" class="form-select" required>
+                <option value="">-- Sélectionner un produit --</option>
+                {% for produit in produits %}
+                    <option value="{{ produit.id }}"
+                        {% if association and association.produit_id == produit.id %} selected {% endif %}>
+                        {{ produit.nom }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="centrale_id" class="form-label">Centrale</label>
+            <select name="centrale_id" id="centrale_id" class="form-select" required>
+                <option value="">-- Sélectionner une centrale --</option>
+                {% for centrale in centrales %}
+                    <option value="{{ centrale.id }}"
+                        {% if association and association.centrale_id == centrale.id %} selected {% endif %}>
+                        {{ centrale.nom }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="strate" class="form-label">Strate</label>
+            <select name="strate" id="strate" class="form-select" required>
+                <option value="">-- Sélectionner une strate --</option>
+                <option value="T1" {% if association and association.strate == 'T1' %}selected{% endif %}>T1</option>
+                <option value="T2" {% if association and association.strate == 'T2' %}selected{% endif %}>T2</option>
+                <option value="T3" {% if association and association.strate == 'T3' %}selected{% endif %}>T3</option>
+                <option value="NA" {% if association and association.strate == 'NA' %}selected{% endif %}>Non attribuée</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success">
+            {{ 'Mettre à jour' if association else 'Créer' }}
+        </button>
+        <a href="{{ url_for('afficher_associations') }}" class="btn btn-secondary">Annuler</a>
+    </form>
+</div>
+{% endblock %}

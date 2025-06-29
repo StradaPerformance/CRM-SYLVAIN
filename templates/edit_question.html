@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">✏️ Modifier la question</h2>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="mb-3">
+            <label for="question_texte" class="form-label">Texte de la question</label>
+            <input type="text" class="form-control" id="question_texte" name="question_texte" value="{{ question.contenu }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="ordre" class="form-label">Ordre d'apparition</label>
+            <input type="number" class="form-control" id="ordre" name="ordre" value="{{ question.ordre }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="type_question" class="form-label">Type de réponse</label>
+            <select class="form-select" id="type_question" name="type_question">
+                <option value="unique" {% if question.type_reponse == 'unique' %}selected{% endif %}>Choix unique</option>
+                <option value="multiple" {% if question.type_reponse == 'multiple' %}selected{% endif %}>Choix multiple</option>
+                <option value="texte" {% if question.type_reponse == 'texte' %}selected{% endif %}>Texte libre</option>
+                <option value="photo" {% if question.type_reponse == 'photo' %}selected{% endif %}>Photo</option>
+                <option value="date" {% if question.type_reponse == 'date' %}selected{% endif %}>Date</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Options (séparées par un `;`) :</label>
+            <input type="text" name="options_reponse" class="form-control" value="{{ question.texte_options }}">
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label for="min_reponses" class="form-label">Nombre minimal de réponses</label>
+                <input type="number" class="form-control" id="min_reponses" name="min_reponses" value="{{ question.nb_min }}">
+            </div>
+            <div class="col">
+                <label for="max_reponses" class="form-label">Nombre maximal de réponses</label>
+                <input type="number" class="form-control" id="max_reponses" name="max_reponses" value="{{ question.nb_max }}">
+            </div>
+        </div>
+
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" name="ajouter_libre" id="ajouter_libre" {% if question.autre_reponse %}checked{% endif %}>
+            <label class="form-check-label" for="ajouter_libre">Ajouter un champ libre</label>
+        </div>
+
+        <hr>
+        <h5 class="mt-4">Condition d'affichage</h5>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" name="conditionnelle" id="conditionnelle" value="1" {% if condition %}checked{% endif %}>
+            <label class="form-check-label" for="conditionnelle">Cette question est conditionnée</label>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Afficher si la réponse à la question suivante est donnée :</label>
+            <select name="condition_question_id" class="form-select">
+                <option value="">-- Aucune --</option>
+                {% for q in toutes_les_questions %}
+                    <option value="{{ q.id }}" {% if condition and condition.question_parent_id == q.id %}selected{% endif %}>{{ q.contenu|truncate(50) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Valeur déclenchante (texte exact attendu)</label>
+            <input type="text" name="condition_valeur" class="form-control" value="{{ condition.reponse_parent if condition else '' }}">
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">💾 Enregistrer les modifications</button>
+            <a href="{{ url_for('admin_questions', questionnaire_id=question.questionnaire_id) }}" class="btn btn-outline-secondary ms-2">Retour</a>
+        </div>
+    </form>
+</div>
+<style>
+  select.form-select:focus,
+  input.form-control:focus {
+      border-color: #d80c45 !important;
+      box-shadow: 0 0 0 0.25rem rgba(216, 12, 69, 0.25) !important;
+      outline: none !important;
+  }
+</style>
+
+{% endblock %}

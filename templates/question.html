@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+    <title>Questionnaire</title>
+</head>
+<body>
+    <h2>Mission : {{ mission }}</h2>
+    <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <p><strong>{{ question }}</strong></p>
+        <input type="text" name="answer" required>
+        
+        <p>Photo (facultatif) :</p>
+        <input type="file" name="photo">
+        
+        <input type="hidden" name="mission" value="{{ mission }}">
+        <input type="hidden" name="question" value="{{ question }}">
+        
+        <br><br>
+        <button type="submit">Suivant</button>
+    </form>
+</body>
+</html>

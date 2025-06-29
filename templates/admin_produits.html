@@ -1,0 +1,66 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>📦 Gestion des Produits</h2>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="{{ url_for('create_produit') }}" class="btn btn-primary">+ Ajouter un produit</a>
+
+        <!-- Filtre par mission (uniquement missions actives) -->
+        <form method="GET" class="d-flex align-items-center">
+            <label for="mission_id" class="me-2 mb-0 fw-bold">🎯 Filtrer par mission :</label>
+            <select name="mission_id" id="mission_id" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Toutes les missions actives --</option>
+                {% for mission in missions %}
+                    <option value="{{ mission.id }}" {% if mission.id == mission_id %}selected{% endif %}>{{ mission.nom }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    {% if produits %}
+    <table class="table table-hover table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Photo</th>
+                <th>Libellé</th>
+                <th>Code EAN</th>
+                <th>Marque</th>
+                <th>Famille</th>
+                <th>Typologie</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for produit in produits %}
+            <tr>
+                <td>
+                    {% if produit.photo %}
+                        <img src="{{ url_for('static', filename='uploads/' ~ produit.photo) }}" alt="Photo" width="50">
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ produit.libelle }}</td>
+                <td>{{ produit.code_ean }}</td>
+                <td>{{ produit.marque }}</td>
+                <td>{{ produit.famille }}</td>
+                <td>{{ produit.typologie }}</td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('edit_produit', produit_id=produit.id) }}" class="btn btn-sm btn-outline-primary">✏️</a>
+                        <form method="POST" action="{{ url_for('delete_produit', produit_id=produit.id) }}" onsubmit="return confirm('❌ Supprimer ce produit ? Cette action est irréversible.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info">Aucun produit enregistré pour le moment.</div>
+    {% endif %}
+</div>
+{% endblock %}

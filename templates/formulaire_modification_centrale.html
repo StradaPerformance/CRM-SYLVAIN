@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>✏️ Modifier la centrale</h2>
+
+    <form method="POST" action="">
+        <!-- CSRF obligatoire -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="nom" name="nom" value="{{ centrale.nom }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="type_centrale" class="form-label">Type</label>
+            <select class="form-select" id="type_centrale" name="type_centrale">
+                <option value="Nationale" {% if centrale.type_centrale == 'Nationale' %}selected{% endif %}>Nationale</option>
+                <option value="Régionale" {% if centrale.type_centrale == 'Régionale' %}selected{% endif %}>Régionale</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success">💾 Enregistrer les modifications</button>
+        <a href="{{ url_for('mission_enseigne_centrales', mission_id=centrale.enseigne.missions_associees[0].mission_id, enseigne_id=centrale.enseigne_id) }}" class="btn btn-secondary">⬅️ Retour</a>
+    </form>
+</div>
+{% endblock %}
+

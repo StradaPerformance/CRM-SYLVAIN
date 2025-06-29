@@ -1,0 +1,10 @@
+<form method="POST" action="">
+  <h4>✅ Étape 4 : Finalisation</h4>
+  <div class="mb-3">
+    <label class="form-label">Commentaire général :</label>
+    <textarea class="form-control" name="commentaire_final" rows="4"></textarea>
+  </div>
+  <button class="btn btn-success" type="submit">💾 Finaliser la visite</button>
+  <a href="{{ url_for('fiche_magasin', magasin_id=magasin.id) }}" class="btn btn-secondary">❌ Abandonner</a>
+</form>
+

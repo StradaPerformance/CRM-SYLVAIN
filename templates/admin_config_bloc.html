@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<h2 class="mb-4">🎯 Configuration des objectifs de préparation de visite</h2>
+
+<form method="POST" action="{{ url_for('admin_config_bloc', mission_id=mission.id, bloc='preparation') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <div class="mb-4">
+    <label for="titre" class="form-label">Titre du bloc (facultatif)</label>
+    <input type="text" class="form-control" name="titre" value="{{ bloc.titre if bloc else '' }}">
+  </div>
+
+  <div id="objectifs-zone">
+    {% for objectif in objectifs %}
+    <div class="card mb-3 p-3 bg-light">
+      <div class="mb-2">
+        <label class="form-label">Objectif n°{{ loop.index }}</label>
+        <input type="text" class="form-control" name="objectif_texte_{{ loop.index0 }}" value="{{ objectif.texte }}" required>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label class="form-label">Note maximale</label>
+          <input type="number" class="form-control" name="objectif_note_{{ loop.index0 }}" value="{{ objectif.note_max }}" min="0" max="10">
+        </div>
+        <div class="col">
+          <label class="form-label">Inclure dans le score global ?</label>
+          <select class="form-select" name="objectif_score_{{ loop.index0 }}">
+            <option value="1" {% if objectif.inclure_score %}selected{% endif %}>Oui</option>
+            <option value="0" {% if not objectif.inclure_score %}selected{% endif %}>Non</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <input type="hidden" name="nb_objectifs" value="{{ objectifs|length }}">
+
+  <button type="submit" class="btn btn-success">💾 Enregistrer les objectifs</button>
+  <a href="{{ url_for('admin_tunnel_releve') }}" class="btn btn-secondary">Retour</a>
+</form>
+
+{% endblock %}

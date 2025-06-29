@@ -1,0 +1,98 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>🧱 Créer une nouvelle enseigne</h2>
+    <p class="text-muted">
+        Cette enseigne pourra ensuite être rattachée à une ou plusieurs missions, avec ses centrales régionales et ses produits associés.
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- Nom -->
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom de l'enseigne</label>
+            <input type="text" class="form-control" id="nom" name="nom" required>
+        </div>
+
+        <!-- Catégorie -->
+        <div class="mb-3">
+            <label for="categorie" class="form-label">Catégorie</label>
+            <select class="form-select" id="categorie" name="categorie" required>
+                <option value="GMS">GMS</option>
+                <option value="GSS">GSS</option>
+                <option value="BTP">BTP</option>
+                <option value="Pharmacie">Pharmacie</option>
+                <option value="GSB">GSB</option>
+                <option value="RHF">RHF / CHR</option>
+                <option value="Autre">Autre</option>
+            </select>
+        </div>
+
+        <!-- Centrale principale -->
+        <div class="mb-3">
+            <label for="centrale" class="form-label">Centrale principale (optionnelle)</label>
+            <input type="text" class="form-control" id="centrale" name="centrale">
+        </div>
+
+        <!-- Logo local -->
+        <div class="mb-3">
+            <label for="logo" class="form-label">Logo de l'enseigne (fichier local)</label>
+            <input type="file" class="form-control" id="logo" name="logo" accept="image/png, image/jpeg">
+        </div>
+
+        <!-- Recherche logo en ligne -->
+        <div class="mb-3">
+            <label for="recherche_logo" class="form-label">🔍 Ou rechercher un logo en ligne</label>
+            <input type="text" id="recherche_logo" class="form-control" placeholder="Exemple : Carrefour, Leclerc..." oninput="rechercherLogo(this.value)">
+            <div id="resultats_logo" class="mt-2 d-flex flex-wrap gap-2"></div>
+            <input type="hidden" id="logo_url" name="logo_url">
+        </div>
+
+        <!-- Mission -->
+        <div class="mb-3">
+            <label for="mission_id" class="form-label">Mission associée</label>
+            <select class="form-select" id="mission_id" name="mission_id" required>
+                {% for mission in missions %}
+                    <option value="{{ mission.id }}">{{ mission.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('admin_assortiments_super_admin') }}" class="btn btn-secondary">⬅️ Retour</a>
+            <button type="submit" class="btn btn-success">✅ Créer l'enseigne</button>
+        </div>
+    </form>
+</div>
+
+<!-- JS pour recherche de logos -->
+<script>
+function rechercherLogo(terme) {
+    if (terme.length < 3) {
+        document.getElementById('resultats_logo').innerHTML = '';
+        return;
+    }
+
+    fetch(`/api/recherche-logo?terme=${encodeURIComponent(terme)}`)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('resultats_logo');
+            container.innerHTML = '';
+            data.images.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.classList.add('img-thumbnail');
+                img.style.height = '60px';
+                img.style.cursor = 'pointer';
+                img.onclick = () => {
+                    document.getElementById('logo_url').value = url;
+                    alert("✅ Logo sélectionné !");
+                };
+                container.appendChild(img);
+            });
+        });
+}
+</script>
+{% endblock %}

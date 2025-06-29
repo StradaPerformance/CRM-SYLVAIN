@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Associations Produit / Centrale / Strate</h2>
+        <a href="{{ url_for('creer_association') }}" class="btn btn-success">➕ Nouvelle association</a>
+    </div>
+
+    <table class="table table-hover table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Produit</th>
+                <th>Centrale</th>
+                <th>Strate</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for association in associations %}
+            <tr>
+                <td>{{ association.produit_associe.nom }}</td>
+                <td>{{ association.centrale.nom }}</td>
+                <td>{{ association.strate }}</td>
+                <td>
+                    <a href="{{ url_for('modifier_association', association_id=association.id) }}" class="btn btn-sm btn-primary">Modifier</a>
+                    <a href="{{ url_for('supprimer_association', association_id=association.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Supprimer cette association ?')">🗑️</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

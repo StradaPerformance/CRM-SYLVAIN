@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>➕ Ajouter une centrale à {{ enseigne.nom }}</h2>
+
+    <form method="POST">
+        <!-- CHAMP CSRF OBLIGATOIRE -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom de la centrale</label>
+            <input type="text" class="form-control" id="nom" name="nom" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="type_centrale" class="form-label">Type</label>
+            <select class="form-select" name="type_centrale" required>
+                <option value="Nationale">Nationale</option>
+                <option value="Régionale">Régionale</option>
+            </select>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('mission_enseigne_centrales', mission_id=mission.id, enseigne_id=enseigne.id) }}" class="btn btn-secondary">⬅️ Retour</a>
+            <button type="submit" class="btn btn-success">💾 Ajouter</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+<!-- Formulaire d'import Excel enseigne / centrale -->
+<form method="POST" action="{{ url_for('import_enseigne_centrale') }}" enctype="multipart/form-data" class="mt-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label for="fichier_excel" class="form-label fw-bold">📥 Importer associations Enseigne / Centrale :</label>
+  <input type="file" name="fichier_excel" accept=".xlsx" class="form-control mb-2" required>
+  <button class="btn btn-outline-primary btn-sm">Importer</button>
+</form>

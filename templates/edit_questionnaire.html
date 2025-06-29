@@ -1,0 +1,114 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<style>
+  .tab-bar {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab-link {
+    padding: 1rem 0;
+    font-weight: 500;
+    color: #444;
+    position: relative;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .tab-link::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 0;
+    left: 0;
+    bottom: 0;
+    background-color: #d80c45;
+    transition: width 0.3s ease;
+  }
+  .tab-link:hover::after,
+  .tab-link.active::after {
+    width: 100%;
+  }
+  .tab-link:hover,
+  .tab-link.active {
+    color: #d80c45;
+  }
+</style>
+
+<script>
+  function filterUsersByMission(missionId) {
+    const blocks = document.querySelectorAll('.mission-users');
+    blocks.forEach(b => {
+      b.style.display = b.dataset.missionId === missionId ? 'block' : 'none';
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const currentMission = document.getElementById('mission_id')?.value;
+    if (currentMission) filterUsersByMission(currentMission);
+  });
+</script>
+
+<!-- Onglets -->
+<div class="tab-bar">
+  <a href="{{ url_for('admin_questionnaires') }}" class="tab-link active">📋 Questionnaires</a>
+  <a href="{{ url_for('admin_questions') }}" class="tab-link">🧠 Questions</a>
+  <a href="{{ url_for('simulation_selection') }}" class="tab-link">🎯 Simulation</a>
+  <span class="tab-link" style="color: #aaa; cursor: not-allowed;">📊 Analyse (à venir)</span>
+</div>
+
+<div class="container mt-4">
+  <h2 class="mb-4">✏️ Modifier le questionnaire</h2>
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="mb-3">
+      <label for="nom" class="form-label">Nom du questionnaire</label>
+      <input type="text" class="form-control" id="nom" name="nom" value="{{ questionnaire.nom }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="mission_id" class="form-label">Mission associée</label>
+      <select class="form-select" name="mission_id" id="mission_id" onchange="filterUsersByMission(this.value)" required>
+        {% for mission in missions %}
+          <option value="{{ mission.id }}" {% if mission.id == questionnaire.mission_id %}selected{% endif %}>
+            {{ mission.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Utilisateurs affectés</label>
+      {% for mission in missions %}
+        <div class="mission-users" data-mission-id="{{ mission.id }}" style="display: none;">
+          <strong class="text-muted">{{ mission.nom }}</strong>
+          <div class="row mt-2">
+            {% for user in utilisateurs if user.mission_id == mission.id %}
+              <div class="col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="utilisateurs"
+                         value="{{ user.id }}" id="user_{{ user.id }}"
+                         {% if user in questionnaire.utilisateurs %}checked{% endif %}>
+                  <label class="form-check-label" for="user_{{ user.id }}">{{ user.nom }}</label>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-success">💾 Enregistrer les modifications</button>
+    <a href="{{ url_for('admin_questionnaires') }}" class="btn btn-secondary">Retour</a>
+  </form>
+</div>
+
+{% endblock %}
