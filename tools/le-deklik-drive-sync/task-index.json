@@ -1,0 +1,62 @@
+[
+  {
+    "storyboard": "S017",
+    "reference": "RE-004",
+    "task_id": "48fbbe7a-998f-4f18-836a-b7afeaf4e6ac",
+    "filename": "V002_RE-004_S017_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S060",
+    "reference": "RE-015",
+    "task_id": "56618904-5594-45ed-9bd6-8067f115ea7b",
+    "filename": "V002_RE-015_S060_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S062",
+    "reference": "RE-017",
+    "task_id": "fe963f31-40ee-433e-8526-91b0f25eafac",
+    "filename": "V002_RE-017_S062_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S269",
+    "reference": "RE-055",
+    "task_id": "1f58350b-8f80-4c13-9154-5bec09493601",
+    "filename": "V002_RE-055_S269_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S287",
+    "reference": "RE-059",
+    "task_id": "360c3dea-a406-4362-900f-60272345ddbe",
+    "filename": "V002_RE-059_S287_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S314",
+    "reference": "RE-064",
+    "task_id": "31a5b64f-d533-4925-b258-cde96bdfb432",
+    "filename": "V002_RE-064_S314_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S320",
+    "reference": "RE-065",
+    "task_id": "d6e08b1b-daa9-4683-b569-3e592b018332",
+    "filename": "V002_RE-065_S320_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S027",
+    "reference": "RE-007",
+    "task_id": "a0189722-fe54-440e-8402-b631a484d68e",
+    "filename": "V002_RE-007_S027_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S040",
+    "reference": "RE-009",
+    "task_id": "7a5e4645-ee48-4428-ba2e-e0599df670f3",
+    "filename": "V002_RE-009_S040_RUNWAY_NB2L_v02.jpg"
+  },
+  {
+    "storyboard": "S144",
+    "reference": "RE-033",
+    "task_id": "daa17b9b-6bfa-4c8f-a00d-86070963d014",
+    "filename": "V002_RE-033_S144_RUNWAY_NB2L_v02.jpg"
+  }
+]
