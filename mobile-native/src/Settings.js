@@ -3,7 +3,7 @@ import {Pressable,ScrollView,Text,View} from 'react-native';
 import {CloudDownload,CloudUpload,RefreshCw,ShieldCheck,Wifi,WifiOff,Trash2,AlertTriangle,CheckCircle2} from 'lucide-react-native';
 import {Badge,Button,C,S,Section} from './design';
 
-export function SettingsScreen({onBack,online,meta,pending,progress,syncing,onSync,onCleanup,onLogout,missionName}){
+export function SettingsScreen({onBack,online,meta,pending,progress,syncing,onSync,onCleanup,onLogout,onOpenVisit,missionName}){
   const shown=meta?.at?new Date(meta.at).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'Jamais';
   return <ScrollView contentContainerStyle={[S.content,{paddingBottom:40}]}>
     <Pressable onPress={onBack} style={{marginTop:21}}><Text style={{fontWeight:'800',color:C.blue}}>‹ Retour</Text></Pressable>
@@ -26,10 +26,15 @@ export function SettingsScreen({onBack,online,meta,pending,progress,syncing,onSy
       </View>)}
     </View>
     {!!(pending?.answers||pending?.actions)&&<Text style={[S.muted,{marginBottom:14}]}>{pending?.answers||0} réponses et {pending?.actions||0} actions encore à transmettre.</Text>}
-    {pending?.items?.filter(v=>v.error).map(v=><View style={[S.card,{borderColor:'#F0B8B8'}]} key={v.id}>
-      <Text style={{fontWeight:'800',color:C.danger}}>{v.store_name}</Text>
-      <Text style={[S.muted,{marginTop:4}]}>{v.error}</Text>
-    </View>)}
+    {pending?.items?.length?<View style={S.card}>
+      <Text style={{fontWeight:'900',color:C.navy,marginBottom:10}}>Relevés conservés sur le téléphone</Text>
+      {pending.items.map(v=><Pressable key={v.id} onPress={()=>onOpenVisit?.(v.id)}
+          style={{paddingVertical:12,borderTopWidth:1,borderTopColor:C.border}}>
+        <Text style={{color:v.error?C.danger:C.text,fontWeight:'800'}}>{v.store_name}</Text>
+        <Text style={[S.muted,{marginTop:3}]}>{v.status==='ready'?'Terminée · en attente d’envoi':'En cours de saisie'} · Ouvrir le relevé</Text>
+        {v.error?<Text style={{color:C.danger,fontSize:12,marginTop:5}}>{v.error}</Text>:null}
+      </Pressable>)}
+    </View>:null}
     {progress?<View style={[S.card,{backgroundColor:C.blueSoft}]}>
       <Text style={{color:C.blue,fontWeight:'800'}}>{progress.stage==='questionnaires'?'Téléchargement des questionnaires':progress.stage==='parc'?'Mise à jour du parc':progress.error?'Envoi interrompu':progress.message||'Synchronisation…'}</Text>
       {progress.stage==='questionnaires'?<Text style={S.muted}>{progress.current} / {progress.total} magasins</Text>:null}
