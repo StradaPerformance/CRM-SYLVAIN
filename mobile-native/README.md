@@ -1,42 +1,44 @@
-# CRM Terrain — application native iPhone / Android
+# CRM Terrain V0.2 — application native iOS et Android
 
-Prototype **React Native / Expo SDK 58**. Les écrans (journée, agenda, parc, objectifs, relevé) sont écrits en composants natifs React Native. Ce n'est pas un emballage WebView du CRM.
+**Projet React Native / Expo SDK 58**, avec des écrans natifs : Ma journée, Agenda, Mon parc, Objectifs, Visite, Paramètres. Le CRM web reste séparé et conserve les données et permissions.
 
-## Connexion
+## Ce qui est inclus
 
-Le CRM Hatchable garde les comptes, autorisations, sessions et données. Une *WebView limitée à la connexion et aux appels API* reste invisible une fois l'utilisateur connecté. Elle charge `https://crm-sylvain-v2.hatchable.site/native-bridge.html` (page publiée dans le projet CRM, v210), ou la page de login s'il n'est pas connecté. Les écrans métiers ne sont jamais rendus en WebView.
+- Connexion au CRM Sylvain V2 via `https://crm-sylvain-v2.hatchable.site/native-bridge.html` ; la WebView est réservée à la connexion/session et aux appels API, les écrans métiers sont natifs.
+- Mission unique affichée sans sélecteur ; choix de mission uniquement pour les utilisateurs qui en possèdent plusieurs.
+- Matin, lorsque le réseau est disponible : récupération du parc autorisé, des objectifs, des huit jours de programme et des questionnaires publiés.
+- Localement : SQLite garde les données de tournée, les visites/brouillons et les réponses ; les photographies sont compressées et copiées dans le dossier privé de l'application. Un ticket de connexion vérifiée est stocké dans SecureStore, valable 48 h au maximum pour travailler hors connexion.
+- Une file d'envoi traite les visites puis les réponses, photos, actions et la clôture, avec identifiants d'opération pour éviter les doublons ; les données locales ne sont marquées « synchronisées » qu'après confirmation serveur.
+- Paramètres : synchronisation manuelle, progression, nombre de visites/photos/actions en attente, erreurs et libération de photos **confirmées transmises uniquement**.
 
-La passerelle utilise **uniquement les API existantes**, avec les cookies de connexion du CRM, et une liste blanche de chemins et méthodes. **Aucun mot de passe, jeton CRM ou clé API n'est présent dans l'application.** Les permissions restent décidées côté serveur. Révoquer le compte terrain dans le CRM le rend également inutilisable sur mobile lors du prochain appel.
+## Prérequis
 
-## Démarrer le projet
+Node.js 22+, npm, puis dans ce dossier :
 
-1. Installer Node.js 22.13 ou plus récent et npm.
-2. Dans ce dossier : `npm install` puis `npx expo install --fix` pour aligner les dépendances sur le SDK 58.
-3. `npx expo start` pour ouvrir dans Expo Go (premier test des écrans natifs), ou fabriquer un développement build.
+```bash
+npm install
+npx expo install --fix
+npx expo start
+```
 
-## Créer les applications installables
+Expo Go permet une **prévisualisation en développement**, mais ne remplace pas un build signé pour les essais en mode avion (le serveur Expo local est alors inaccessible). La page d'essai mobile est `https://crm-sylvain-v2.hatchable.site/test-app-native.html`.
 
-- Android : `npm install -g eas-cli`, `eas login`, `eas build --platform android --profile preview` => **APK installable**.
-- iPhone : `eas login`, `eas build --platform ios --profile preview` => **application iOS ad hoc** ; requiert un compte Apple Developer et l'enregistrement de l'iPhone dans le profil de distribution. Une version TestFlight pourra être créée avec `eas build --platform ios --profile production` et `eas submit --platform ios`.
-- Alternative Android locale : `npx expo prebuild --platform android`, puis `cd android && ./gradlew assembleRelease` si un SDK Android est configuré.
+### Construire une véritable application
 
-**Important** : Ce ZIP est du code source prêt à compiler, pas un APK/IPA. La compilation cloud exige les identifiants Expo (et Apple pour l'iPhone), à connecter côté propriétaire. Le code a été vérifié statiquement, mais pas exécuté sur appareil physique dans cet environnement.
+- Android APK : ouvrir la branche `feature/crm-terrain-native`, puis récupérer l'artefact de la workflow GitHub Actions `CRM Terrain Android APK` si le build est vert ; sinon `eas build --platform android --profile preview` après configuration d'Expo/EAS.
+- iOS : nécessite signature Apple Developer, un build EAS iOS et, au choix, TestFlight ou un provisionnement ad hoc ; Expo Go seul ne produit pas de binaire iOS installable.
 
-## Parcours de test conseillé
+## Scénario de recette indispensable (mission de test)
 
-- Compte collaborateur invité : se connecter par e-mail/code sur la page CRM intégrée.
-- Ma journée : vérifier les créneaux réels du compte, la fiche magasin et les statuts.
-- Agenda : naviguer entre plusieurs dates.
-- Mon parc : vérifier uniquement le périmètre du collaborateur et ouvrir un itinéraire.
-- Objectifs : vérifier les objectifs accessibles à sa mission.
-- Relevé : démarrer/reprendre une visite, modifier une réponse et la terminer (test sur mission dédiée pour ne pas polluer les données de production).
-- Désactiver le compte dans CRM : vérifier l'impossibilité d'utiliser l'app à la prochaine requête.
+1. Se connecter avec un compte commercial, vérifier les missions et son parc, lancer « Synchroniser maintenant ».
+2. Vérifier que les questionnaires sont disponibles ; activer le mode avion, créer une visite, saisir réponses, prendre une photo et terminer la visite.
+3. Fermer puis rouvrir l'application **sans connexion** et retrouver le relevé, les réponses, les photos et les envois en attente.
+4. Réactiver le réseau, attendre ou forcer la synchronisation ; confirmer que le CRM affiche **une seule** visite, toutes ses réponses et photos.
+5. Couper le réseau pendant un transfert, relancer ; confirmer l'absence de doublons et la préservation des données.
+6. Tester une erreur serveur et une affectation/révocation changée, la reprise après fermeture, et la gestion des questionnaires modifiés.
 
-## Limites V0.1
+## Limites avant un vrai déploiement à l'équipe
 
-- Pas de synchronisation hors ligne (les réponses sont sauvegardées sur l'API en ligne seulement).
-- Les questionnaires sont rendus sous forme Oui/Non, choix ou saisie simple ; les règles conditionnelles et tous les types avancés nécessiteront une V0.2.
-- Les listes d'actions et indicateurs sont lus depuis le CRM, sans copie des données.
-- La passerelle de connexion doit être conservée dans le CRM.
+**V0.2 reste un prototype avancé non encore réceptionné sur de vrais appareils.** Aucune garantie d'envoi immédiat en arrière-plan sur iOS ; la synchronisation est relancée au retour dans l'application et au retour du réseau. L'application conserve les photos non envoyées et signale un conflit de questionnaire au lieu de les écraser. Les questionnaires conditionnels/complexes sont validés définitivement par le serveur ; les types avancés nécessitent encore des tests de compatibilité. Les données SQLite sont isolées par compte utilisateur, mais leur chiffrement au repos et l'effacement distant en cas de perte de téléphone restent des sujets à traiter avant un déploiement sensible.
 
-Le projet CRM web n'est pas remplacé. Les nouvelles APIs de la précédente V209 et toutes les vues manager restent intactes.
+Le CRM serveur V213 est publié ; la branche native doit encore réussir la compilation et la recette sur appareil. Ne pas fusionner la branche de développement dans la branche principale avant les tests.
