@@ -1,0 +1,40 @@
+name: CRM Terrain — Android APK de test
+on:
+  push:
+    branches:
+      - feature/crm-terrain-native
+    paths:
+      - "mobile-native/**"
+      - ".github/workflows/crm-terrain-android.yml"
+  workflow_dispatch:
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: mobile-native
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+      - name: Générer les icônes
+        run: python3 scripts/generate_icons.py
+      - name: Préparer Android natif
+        run: npx expo prebuild --platform android --non-interactive
+      - name: Compiler APK de test autonome
+        run: ./gradlew assembleRelease --no-daemon
+        working-directory: mobile-native/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crm-terrain-android-apk
+          path: mobile-native/android/app/build/outputs/apk/debug/app-release.apk
+          retention-days: 7
