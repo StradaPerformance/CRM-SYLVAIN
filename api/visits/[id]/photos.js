@@ -9,10 +9,11 @@ export default async function(req,res){
   if(!a.allowed)return deny(res,a.reason);
   // A collaborator must never attach an image to another user's visit.
   const own=(await db.query('SELECT 1 FROM visits WHERE id=$1 AND user_id=$2',[v.id,req.user.id])).rows.length>0;
-  if(!own)return res.status(403).json({error:'not_visit_owner'});
+  if(req.method==='POST'&&!own)return res.status(403).json({error:'not_visit_owner'});
   if(req.method==='GET'){
-    const {rows}=await db.query('SELECT id,operation_id,bytes,created_at FROM mobile_visit_photos WHERE visit_id=$1 ORDER BY created_at',[v.id]);
-    return res.json({photos:rows});
+    const {rows}=await db.query('SELECT id,operation_id,bytes,storage_key,created_at FROM mobile_visit_photos WHERE visit_id=$1 ORDER BY created_at',[v.id]);
+    const photos=await Promise.all(rows.map(async x=>({id:x.id,operation_id:x.operation_id,bytes:x.bytes,created_at:x.created_at,url:await storage.url(x.storage_key,{ttl:300})})));
+    return res.json({photos});
   }
   if(v.status!=='in_progress')return res.status(409).json({error:'visit_not_editable'});
   const operationId=String(req.body?.operation_id||'');
