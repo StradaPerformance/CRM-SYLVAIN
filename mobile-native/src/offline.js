@@ -37,7 +37,7 @@ export async function localDb(){
     );
     CREATE TABLE IF NOT EXISTS visits_local (
       id TEXT PRIMARY KEY, owner TEXT NOT NULL, mission TEXT NOT NULL, store_id TEXT NOT NULL,
-      store_name TEXT NOT NULL, server_id TEXT, operation_id TEXT NOT NULL UNIQUE,
+      store_name TEXT NOT NULL, template_json TEXT NOT NULL, server_id TEXT, operation_id TEXT NOT NULL UNIQUE,
       status TEXT NOT NULL DEFAULT 'editing', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
       error TEXT NOT NULL DEFAULT ''
     );
@@ -95,8 +95,8 @@ export async function newOrResumeLocalVisit(owner,mission,store,template){
   if(existing)return existing;
   if(!template?.questions||!template?.config_version_id)throw Error('Questionnaire non téléchargé. Synchronise ton parc avant la tournée.');
   const id=uuid(),op=uuid(),time=now();
-  await db.runAsync(`INSERT INTO visits_local(id,owner,mission,store_id,store_name,operation_id,status,created_at,updated_at)
-    VALUES(?,?,?,?,?,?,'editing',?,?)`,[id,owner,mission,store.id,store.name||store.store_name||'Magasin',op,time,time]);
+  await db.runAsync(`INSERT INTO visits_local(id,owner,mission,store_id,store_name,template_json,operation_id,status,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,'editing',?,?)`,[id,owner,mission,store.id,store.name||store.store_name||'Magasin',JSON.stringify(template),op,time,time]);
   return await db.getFirstAsync('SELECT * FROM visits_local WHERE id=? AND owner=?',[id,owner]);
 }
 export async function linkServerVisit(owner,draftId,serverId,initialAnswers=[]){
@@ -116,7 +116,7 @@ export async function getLocalVisit(owner,id){
   const v=await db.getFirstAsync('SELECT * FROM visits_local WHERE id=? AND owner=?',[id,owner]);
   if(!v)return null;
   const [template, answers, actions, photos]=await Promise.all([
-    cacheGet(owner,v.mission,'template',v.store_id),
+    Promise.resolve(fromJSON(v.template_json)),
     db.getAllAsync('SELECT * FROM answers_local WHERE visit_id=?',[id]),
     db.getAllAsync('SELECT * FROM actions_local WHERE visit_id=? ORDER BY rowid',[id]),
     db.getAllAsync('SELECT * FROM photos_local WHERE visit_id=? ORDER BY rowid',[id]),
@@ -167,7 +167,7 @@ export async function finishLocalVisit(owner,id){
   const v=await getLocalVisit(owner,id);
   if(!v||v.status!=='editing')throw Error('Visite indisponible');
   // Immediate validation for simple required answers; server remains the final authority for conditions.
-  const missing=(v.template?.questions||[]).filter(q=>q.required&&!v.answers.some(a=>a.question_id===q.id&&a.value!==null&&a.value!==''));
+  const missing=(v.template?.questions||[]).filter(q=>q.required&&!q.conditions&&!v.answers.some(a=>a.question_id===q.id&&a.value!==null&&a.value!==''));
   if(missing.length)throw Error('Réponses obligatoires manquantes : '+missing.slice(0,3).map(q=>q.label).join(', '));
   await db.runAsync("UPDATE visits_local SET status='ready',updated_at=?,error='' WHERE id=? AND owner=?",[now(),id,owner]);
 }
@@ -206,6 +206,10 @@ export async function drainQueue(owner,api,onProgress=()=>{}){
           });
           serverId=result.visit?.id;
           if(!serverId)throw Error('Le CRM n’a pas confirmé la visite');
+          const receivedVersion=result.visit?.config_version_id;
+          const expectedVersion=fromJSON(draft.template_json)?.config_version_id;
+          if(receivedVersion&&expectedVersion&&receivedVersion!==expectedVersion)
+            throw Error('Le questionnaire du magasin a changé. Le relevé local est conservé; demander une vérification avant envoi.');
           await db.runAsync('UPDATE visits_local SET server_id=? WHERE id=? AND owner=?',[serverId,id,owner]);
         }
         const answers=await db.getAllAsync('SELECT * FROM answers_local WHERE visit_id=? AND synced_revision<revision',[id]);
@@ -269,7 +273,8 @@ export async function prepareTour(owner,missions,mission,api,onProgress=()=>{}){
   onProgress({stage:'parc',current:1,total:1});
   const goalsRes=await api('GET',`/api/missions/${mission}/goals`);
   await cachePut(owner,mission,'data','goals',goalsRes.goals||[]);
-  const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const dateParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const day=['year','month','day'].map(k=>dateParts.find(p=>p.type===k).value).join('-');
   for(let offset=0;offset<8;offset++){
     const date=nextDate(day,offset);
     const agenda=await api('GET',`/api/missions/${mission}/mobile-day?date=${date}`);
