@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "CRM Terrain",
+    "slug": "crm-terrain",
+    "scheme": "crmterrain",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "backgroundColor": "#F4F7FB",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "fr.stradaperformance.crmterrain",
+      "infoPlist": {"ITSAppUsesNonExemptEncryption": false}
+    },
+    "android": {
+      "package": "fr.stradaperformance.crmterrain",
+      "adaptiveIcon": {"foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#111D32"},
+      "edgeToEdgeEnabled": true,
+      "permissions": []
+    },
+    "web": {"favicon": "./assets/favicon.png"},
+    "extra": {"crmOrigin": "https://crm-sylvain-v2.hatchable.site"}
+  }
+}
