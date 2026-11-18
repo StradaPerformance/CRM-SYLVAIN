@@ -136,6 +136,7 @@ function CrmApp(){
       if(full){
         setSyncProgress({message:'Préparation de la tournée…'});
         const meta=await prepareTour(owner,missions,mission,api,setSyncProgress);
+        autoRef.current.add(owner+':'+mission+':'+todayParis());
         setSyncMeta(meta);setStores(null);setGoals(null);setRefreshCounter(n=>n+1);
       }
       if(!quiet)Alert.alert('Synchronisation',r.pending?.errors?'Certaines visites ont besoin d’une correction. Vérifie les erreurs dans les paramètres.':'Les envois disponibles ont été traités et les données téléchargées.');
@@ -148,10 +149,8 @@ function CrmApp(){
   useEffect(()=>{
     if(!owner||!ready||!mission||!online)return;
     const key=owner+':'+mission+':'+todayParis();
-    if(!autoRef.current.has(key)){
-      autoRef.current.add(key);
-      syncNow({full:true,quiet:true});
-    }else syncNow({full:false,quiet:true});
+    if(!autoRef.current.has(key))syncNow({full:true,quiet:true});
+    else syncNow({full:false,quiet:true});
   },[owner,ready,mission,online,foregroundTick]);
 
   async function startVisit(storeId,storeHint=null,existingServerId=null){
