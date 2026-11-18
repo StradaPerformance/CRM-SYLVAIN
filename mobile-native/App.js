@@ -4,10 +4,11 @@ import {SafeAreaProvider,SafeAreaView} from 'react-native-safe-area-context';
 import {WebView} from 'react-native-webview';
 import {StatusBar} from 'expo-status-bar';
 import * as Network from 'expo-network';
-import {CalendarCheck2,CalendarDays,Store,Target,Settings2,CloudOff,CloudUpload,CloudDownload,ChevronDown} from 'lucide-react-native';
+import {CalendarCheck2,MapPinned,Store,Target,Settings2,CloudOff,CloudUpload,CloudDownload,ChevronDown} from 'lucide-react-native';
 import {useCrmBridge} from './src/bridge';
 import {Badge,Button,C,Empty,S,formatDate,todayParis} from './src/design';
-import {TodayScreen,AgendaScreen,ParkScreen,GoalsScreen,StoreDetail,EventDetail} from './src/Screens';
+import {TodayScreen,ParkScreen,GoalsScreen,StoreDetail,EventDetail} from './src/Screens';
+import {MapScreen} from './src/MapScreen';
 import {VisitScreen} from './src/Visit';
 import {VisitScreen as LegacyVisitScreen} from './src/LegacyVisit';
 import {SettingsScreen} from './src/Settings';
@@ -17,7 +18,7 @@ import {cacheGet,cachePut,loadOfflineSession,saveAuthenticatedSession,clearOffli
 
 const TABS=[
   {id:'today',Icon:CalendarCheck2,label:'Ma journée'},
-  {id:'agenda',Icon:CalendarDays,label:'Agenda'},
+  {id:'agenda',Icon:MapPinned,label:'Carte'},
   {id:'park',Icon:Store,label:'Mon parc'},
   {id:'goals',Icon:Target,label:'Objectifs'},
 ];
@@ -212,7 +213,7 @@ function CrmApp(){
       onStart={id=>startVisit(id,focus.value)} onOpenVisit={id=>openExistingVisit(id,focus.value)}/>;
     if(focus?.type==='store')return <StoreDetail store={focus.value} busy={busy} onBack={()=>setFocus(null)} onStart={id=>startVisit(id,focus.value)}/>;
     if(!mission)return <View style={S.content}><Empty title="Aucune mission accessible" subtitle="Ton compte doit être affecté à une mission du CRM."/></View>;
-    if(tab==='agenda')return <AgendaScreen day={day} setDay={setDay} events={events} loading={dayLoading} onEvent={event=>setFocus({type:'event',value:event})}/>;
+    if(tab==='agenda')return <MapScreen day={day} setDay={setDay} events={events} loading={dayLoading} onEvent={event=>setFocus({type:'event',value:event})}/>;
     if(tab==='park')return <ParkScreen stores={stores} loading={parkLoading} onStore={store=>setFocus({type:'store',value:store})}/>;
     if(tab==='goals')return <GoalsScreen goals={goals||[]} loading={goalsLoading}/>;
     return <TodayScreen day={day} setDay={setDay} events={events} loading={dayLoading} refresh={refresh} onEvent={event=>setFocus({type:'event',value:event})}/>;
