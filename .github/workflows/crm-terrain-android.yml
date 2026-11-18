@@ -42,5 +42,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: crm-terrain-android-apk
-          path: mobile-native/android/app/build/outputs/apk/debug/app-release.apk
-          retention-days: 7
+          path: mobile-native/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
+          if-no-files-found: error
