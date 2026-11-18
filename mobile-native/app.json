@@ -13,7 +13,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "fr.stradaperformance.crmterrain",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "CRM Terrain utilise votre position uniquement lorsque vous choisissez de vous localiser sur la carte de votre tournée."
       }
     },
     "android": {
@@ -43,6 +44,12 @@
         "expo-secure-store",
         {
           "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Afficher votre position sur la carte des visites lorsque vous l'autorisez."
         }
       ]
     ]
