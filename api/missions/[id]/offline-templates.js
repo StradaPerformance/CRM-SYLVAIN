@@ -20,7 +20,7 @@ export default async function(req,res) {
     if(!found?.config?.id) {unavailable.push({store_id:storeId,error:'no_published_visit_config'});continue;}
     const versionId=found.config.id;
     if(!configs.has(versionId)) {
-      const r=await db.query('SELECT id,label,type,required,options,position,condition FROM questions WHERE config_version_id=$1 ORDER BY position,label',[versionId]);
+      const r=await db.query('SELECT id,label,type,required,options,position,conditions,code FROM questions WHERE config_version_id=$1 ORDER BY position,label',[versionId]);
       configs.set(versionId,{config_version_id:versionId,questions:r.rows});
     }
     templates[storeId]=configs.get(versionId);
