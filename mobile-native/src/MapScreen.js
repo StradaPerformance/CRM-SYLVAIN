@@ -79,8 +79,8 @@ export function MapScreen({day,setDay,events,loading,onEvent}){
       <View style={{paddingHorizontal:20}}><Empty title="Aucun point de visite" subtitle="Sélectionne une autre journée : seuls les magasins planifiés apparaissent sur cette carte."/></View>:
       <>
         <View style={{height:345,marginHorizontal:16,borderRadius:18,overflow:'hidden',borderWidth:1,borderColor:C.border,backgroundColor:'#E7EEF5'}}>
-          <WebView key={day+'|'+points.map(e=>e.id).join(',')+'|'+(position?position.latitude+','+position.longitude:'')} source={{html:mapHtml(points,position),baseUrl:'https://crm-sylvain-v2.hatchable.site'}}
-            javaScriptEnabled domStorageEnabled={false} scrollEnabled={false} nestedScrollEnabled originWhitelist={['https://*']}
+          <WebView key={day+'|'+points.map(e=>e.id).join(',')+'|'+(position?position.latitude+','+position.longitude:'')} source={{html:mapHtml(points,position)}}
+            javaScriptEnabled domStorageEnabled={false} sharedCookiesEnabled={false} thirdPartyCookiesEnabled={false} incognito scrollEnabled={false} nestedScrollEnabled originWhitelist={['https://*','about:blank']}
             onMessage={evt=>{try{const msg=JSON.parse(evt.nativeEvent.data);if(msg.type==='select'&&points[msg.index])setSelectedId(points[msg.index].id);}catch{}}}
             onError={()=>{}} style={{flex:1,backgroundColor:'#E7EEF5'}}/>
         </View>
