@@ -6,6 +6,12 @@ on:
     paths:
       - "mobile-native/**"
       - ".github/workflows/crm-terrain-android.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "mobile-native/**"
+      - ".github/workflows/crm-terrain-android.yml"
   workflow_dispatch:
 jobs:
   build-apk:
