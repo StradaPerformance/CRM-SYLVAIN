@@ -3,7 +3,7 @@
     "name": "CRM Terrain",
     "slug": "crm-terrain",
     "scheme": "crmterrain",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
@@ -12,15 +12,39 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "fr.stradaperformance.crmterrain",
-      "infoPlist": {"ITSAppUsesNonExemptEncryption": false}
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "fr.stradaperformance.crmterrain",
-      "adaptiveIcon": {"foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#111D32"},
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#111D32"
+      },
       "edgeToEdgeEnabled": true,
       "permissions": []
     },
-    "web": {"favicon": "./assets/favicon.png"},
-    "extra": {"crmOrigin": "https://crm-sylvain-v2.hatchable.site"}
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "crmOrigin": "https://crm-sylvain-v2.hatchable.site"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autoriser CRM Terrain à sélectionner les photos de vos visites.",
+          "cameraPermission": "Autoriser CRM Terrain à photographier les visites."
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ]
+    ]
   }
 }
