@@ -37,13 +37,13 @@ function CrmApp(){
   const [error,setError]=useState(''),[refreshCounter,setRefreshCounter]=useState(0);
   const [syncing,setSyncing]=useState(false),[syncProgress,setSyncProgress]=useState(null);
   const [pending,setPending]=useState(null),[syncMeta,setSyncMeta]=useState(null);
-  const [initialized,setInitialized]=useState(false);
+  const [initialized,setInitialized]=useState(false),[foregroundTick,setForegroundTick]=useState(0);
   const syncingRef=useRef(false),autoRef=useRef(new Set());
   const ready=bridge.phase==='ready'&&!!bridge.profile?.user_id;
   const online=connected(network);
-  const offlineUnlocked=!ready&&network?.isConnected===false&&ticket&&Date.now()-ticket.verified_at<48*3600000&&bridge.phase!=='denied';
-  const usable=ready||offlineUnlocked;
-  const profile=ready?bridge.profile:ticket;
+  const offlineUnlocked=!!ticket&&Date.now()-ticket.verified_at<48*3600000&&bridge.phase!=='denied'&&(!online||bridge.phase==='connection_error');
+  const usable=(ready&&online)||offlineUnlocked;
+  const profile=ready&&online?bridge.profile:offlineUnlocked?ticket:null;
   const owner=profile?.user_id||null;
 
   const counts=useCallback(async(id=owner)=>{
@@ -62,7 +62,7 @@ function CrmApp(){
     })();
     const listener=Network.addNetworkStateListener(state=>{if(alive)setNetwork(state)});
     const active=AppState.addEventListener('change',state=>{
-      if(state==='active')Network.getNetworkStateAsync().then(n=>{if(alive)setNetwork(n)}).catch(()=>{});
+      if(state==='active'){setForegroundTick(t=>t+1);Network.getNetworkStateAsync().then(n=>{if(alive)setNetwork(n)}).catch(()=>{});}
     });
     return()=>{alive=false;listener.remove();active.remove()};
   },[]);
@@ -152,7 +152,7 @@ function CrmApp(){
       autoRef.current.add(key);
       syncNow({full:true,quiet:true});
     }else syncNow({full:false,quiet:true});
-  },[owner,ready,mission,online]);
+  },[owner,ready,mission,online,foregroundTick]);
 
   async function startVisit(storeId,storeHint=null,existingServerId=null){
     if(!owner||!mission||!storeId||busy)return;
