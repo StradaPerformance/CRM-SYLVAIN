@@ -203,7 +203,8 @@ function CrmApp(){
     }}]);}
   const screen=()=>{
     if(settings)return <SettingsScreen onBack={()=>setSettings(false)} online={online&&ready} meta={syncMeta} pending={pending} progress={syncProgress} syncing={syncing}
-      missionName={missions.find(m=>m.id===mission)?.name} onSync={()=>syncNow({full:true})} onCleanup={cleanup} onLogout={logout}/>;
+      missionName={missions.find(m=>m.id===mission)?.name} onSync={()=>syncNow({full:true})} onCleanup={cleanup} onLogout={logout}
+      onOpenVisit={id=>{setSettings(false);setDraftId(id)}}/>;
     if(draftId)return <VisitScreen owner={owner} draftId={draftId} onBack={()=>{setDraftId(null);refresh()}}
       onUpdate={flush=>{counts(owner);if(flush)syncNow({full:false,quiet:true})}}
       onFinished={()=>{setDraftId(null);refresh()}}/>;
