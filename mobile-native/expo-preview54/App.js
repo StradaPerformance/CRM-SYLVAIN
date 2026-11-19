@@ -276,7 +276,7 @@ function labelValue(value){
   return String(value);
 }
 function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true}){
-  const [step,setStep]=useState(0);
+  const [step,setStep]=useState(()=>{const first=questions.findIndex(q=>!answered(responses[q.id]));return first<0?questions.length:first;});
   const [draft,setDraft]=useState(null);
   const [busy,setBusy]=useState(false);
   const [localError,setLocalError]=useState('');
@@ -331,7 +331,7 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
       <View accessibilityRole="progressbar" accessibilityValue={{min:0,max:100,now:position}} style={{height:7,borderRadius:10,backgroundColor:'#E6ECF5',overflow:'hidden',marginTop:9}}>
         <View style={{width:position+'%',height:'100%',backgroundColor:C.blue,borderRadius:10}}/>
       </View>
-      <Text style={{fontSize:11,color:C.muted,marginTop:8}}>{saveLabel||'Sauvegarde à chaque étape'}</Text>
+      <Text style={{fontSize:11,color:C.muted,marginTop:8}}>{saveLabel||'Enregistrement en passant à la question suivante'}</Text>
     </View>
     <ScrollView key={summaryStep?'summary':question?.id||step} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:24,paddingBottom:28}} keyboardShouldPersistTaps="handled">
       {!!(localError||error)&&<Text style={{color:C.danger,backgroundColor:C.redSoft,padding:12,borderRadius:10,marginBottom:16}}>{localError||error}</Text>}
