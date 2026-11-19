@@ -1,7 +1,7 @@
 // CRM Terrain : aperçu React Native compatible Expo Go SDK 54 sur iPhone.
 // Aperçu fonctionnel basé sur la V0.1 ; moteur hors connexion V0.2 non inclus dans cet aperçu.
 import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
-import { Alert, ActivityIndicator, Linking, Modal, Pressable, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
+import { Alert, ActivityIndicator, Linking, Modal, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
@@ -318,7 +318,7 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
       {text:'Enregistrer',onPress:async()=>{try{await onSave(question.id,normalizeDraft(question,draft));onExit?.()}catch(e){setLocalError('Impossible de sauvegarder : '+e.message)}}}
     ]);
   };
-  return <View style={{flex:1,backgroundColor:C.bg}}>
+  return <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':undefined} style={{flex:1,backgroundColor:C.bg}}>
     <View style={{paddingHorizontal:20,paddingTop:17,paddingBottom:13,backgroundColor:'white',borderBottomColor:C.border,borderBottomWidth:1}}>
       <Pressable accessibilityRole="button" onPress={goExit} style={{alignSelf:'flex-start',paddingVertical:6,paddingRight:12,marginBottom:7}}>
         <Text style={{color:C.blue,fontWeight:'800',fontSize:13}}>‹ Quitter le relevé</Text>
@@ -372,12 +372,12 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
         <Text style={{color:C.navy,fontWeight:'800'}}>Précédent</Text>
       </Pressable>
       {!summaryStep?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>move(step+1)} style={{minHeight:49,flex:1.6,backgroundColor:C.blue,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
-        <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':'Suivant →'}</Text>
+        <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':!question?.required&&!answered(draft)?'Passer →':'Suivant →'}</Text>
       </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):onExit?.()} style={{minHeight:49,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
         <Text style={{color:C.blue,fontWeight:'900'}}>{missing.length?'Réponses manquantes':'Retour à ma journée'}</Text>
       </Pressable>}
     </View>
-  </View>;
+  </KeyboardAvoidingView>;
 }
 
 
