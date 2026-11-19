@@ -247,7 +247,6 @@ function EventDetail({event,onBack,onStart,onOpenVisit,busy}){
 
 
 
-
 // Shared between local-first and connected visit flows.
 // One question per screen; every transition persists before moving on.
 const answered=value=>value!==undefined&&value!==null&&!(typeof value==='string'&&value.trim()==='');
@@ -405,7 +404,6 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
 
 
 
-
 const DEFAULT_POSITIONS=[
  'Fond de rayon / linéaire','Tête de gondole (TG)','Univers Produits du monde',
  'Zone promotionnelle','Allée centrale','Îlot / podium','Meuble additionnel',
@@ -423,7 +421,7 @@ function productCoverage(products=[],readings=[]){
    const present=list.filter(p=>byId[p.mission_product_id]?.present===true).length;
    const absent=list.filter(p=>byId[p.mission_product_id]?.present===false).length;
    return {total:list.length,present,absent,remaining:list.length-present-absent,
-     percent:list.length?Math.round(present/list.length*100):null};
+     percent:list.length?Number((present/list.length*100).toFixed(1)):null};
  };
  const required=products.filter(p=>p.required===true);
  const picking=products.filter(p=>p.required!==true);
@@ -554,7 +552,6 @@ function CommentStep({value,onChange,editable}){
 
 
 // FILE: src/LegacyVisit.js
-
 
 
 
