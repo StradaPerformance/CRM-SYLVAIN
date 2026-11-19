@@ -23,7 +23,7 @@ function normalizeDraft(q,draft){
   }
   return draft;
 }
-function sameValue(a,b){return a===b||(a!=null&&b!=null&&String(a)===String(b))}
+function sameValue(a,b){return (!answered(a)&&!answered(b))||a===b||(a!=null&&b!=null&&String(a)===String(b))}
 function labelValue(value){
   if(!answered(value))return 'Non renseignée';
   if(value===true)return 'Oui';
