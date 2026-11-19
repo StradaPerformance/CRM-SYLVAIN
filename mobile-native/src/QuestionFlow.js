@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useRef,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {Alert,Pressable,ScrollView,Text,TextInput,View} from 'react-native';
 import {C,S} from './design';
 
@@ -42,8 +42,8 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
   const question=summaryStep?null:questions[step];
   const saved=question?responses[question.id]:undefined;
   const count=questions.filter(q=>answered(responses[q.id])).length;
-  const position=total===0?100:summaryStep?100:Math.round((step+1)/total*100);
-  const missing=questions.filter(q=>q.required&&!answered(responses[q.id]));
+  const position=total===0?100:Math.round((Math.min(step,total)/total)*100);
+  const missing=questions.filter(q=>q.required&&!q.conditions&&!answered(responses[q.id]));
   useEffect(()=>{setDraft(saved==null?'':saved);setLocalError('')},[step,question?.id]);
   const selected=v=>sameValue(draft,v);
   async function move(next,allowEmptyRequired=false){
@@ -52,7 +52,7 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
     let val;
     try{val=normalizeDraft(question,draft);}
     catch(e){setLocalError(e.message);return;}
-    if(!allowEmptyRequired&&question.required&&!answered(val)){
+    if(editable&&!allowEmptyRequired&&question.required&&!question.conditions&&!answered(val)){
       setLocalError('Cette réponse est obligatoire pour continuer.');
       return;
     }
@@ -109,7 +109,7 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
         <Text style={{fontWeight:'900',fontSize:25,lineHeight:33,color:C.navy,marginTop:10,marginBottom:23}}>{question.label}</Text>
         {isBoolean(question)?<View style={{gap:11}}>
           {[[true,'Oui'],[false,'Non']].map(([v,label])=><Pressable key={label} disabled={!editable||busy} onPress={()=>setDraft(v)} style={{minHeight:73,backgroundColor:selected(v)?C.blueSoft:'white',borderColor:selected(v)?C.blue:C.border,borderWidth:selected(v)?2:1,borderRadius:16,justifyContent:'center',paddingHorizontal:20}}>
-            <Text style={{color:selected(v)?C.blue:C.text,fontWeight:'850',fontSize:19}}>{selected(v)?'✓  ':''}{label}</Text>
+            <Text style={{color:selected(v)?C.blue:C.text,fontWeight:'800',fontSize:19}}>{selected(v)?'✓  ':''}{label}</Text>
           </Pressable>)}
         </View>:optionsFor(question).length>0&&['select','single_choice','choice','radio'].includes(String(question.type||'').toLowerCase())?
           <View style={{gap:11}}>{optionsFor(question).map((option,i)=>{
