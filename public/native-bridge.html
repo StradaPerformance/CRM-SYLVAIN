@@ -1,0 +1,49 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Connexion CRM Terrain</title><style>body{font-family:system-ui;background:#101e33;color:white;display:grid;place-items:center;min-height:100dvh;margin:0;text-align:center}main{padding:25px}span{color:#a6c5ff}</style></head><body><main><h2>CRM Terrain</h2><p id="state">Connexion sécurisée en cours…</p><span>La connexion utilise le compte du CRM.</span></main>
+<script>
+(function(){
+  'use strict';
+  var BASE='/api/';
+  var uuid='[0-9a-fA-F-]{36}';
+  var allow=[
+    /^\/api\/me$/,
+    /^\/api\/missions$/,
+    /^\/api\/missions\/[a-f0-9-]{36}\/mobile-day\?date=\d{4}-\d{2}-\d{2}$/i,
+    /^\/api\/missions\/[a-f0-9-]{36}\/agenda\?from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}$/i,
+    /^\/api\/missions\/[a-f0-9-]{36}\/(stores|goals)$/i,
+    /^\/api\/visits\/[a-f0-9-]{36}$/i,
+    /^\/api\/visits\/[a-f0-9-]{36}\/(complete|responses|actions|photos|mobile-action)$/i,
+    /^\/api\/missions\/[a-f0-9-]{36}\/offline-templates$/i,
+    /^\/api\/visits$/
+  ];
+  function send(obj){try{window.ReactNativeWebView.postMessage(JSON.stringify(obj))}catch(e){}}
+  window.__crmNativeBridge=async function(payload){
+    var id=payload&&payload.id;
+    try{
+      var method=String(payload.method||'GET').toUpperCase();
+      var path=String(payload.path||'');
+      var isGet=method==='GET';
+      var isSafe=(isGet||method==='PUT'||method==='POST')&&allow.some(function(x){return x.test(path)})&&
+       (isGet||(
+         (method==='POST'&&(path==='/api/visits'||/\/(complete|actions|photos|mobile-action|offline-templates)$/.test(path)))||
+         (method==='PUT'&&/\/responses$/.test(path))
+       ));
+      if(!isSafe)throw Error('Requête non autorisée');
+      var r=await fetch(path,{method:method,credentials:'same-origin',headers:{'content-type':'application/json'},body:isGet?undefined:JSON.stringify(payload.body||{})});
+      var data=await r.json().catch(function(){return {}});
+      if(r.status===401||r.status===403&&String(data.error||'').includes('profile_')){send({type:'expired'});throw Error('Connexion expirée ou compte désactivé');}
+      send({type:'response',id:id,ok:r.ok,status:r.status,data:data});
+    }catch(err){send({type:'response',id:id,ok:false,error:err&&err.message||'Erreur réseau'})}
+  };
+  async function boot(){
+    try{
+      var r=await fetch('/api/me',{credentials:'same-origin'});
+      var body=await r.json().catch(function(){return {}});
+      if(r.status===401){location.replace('/login.html?next='+encodeURIComponent('/native-bridge.html'));return;}
+      if(!r.ok){document.getElementById('state').textContent='Accès refusé : '+(body.error||r.status);send({type:'denied'});return;}
+      document.getElementById('state').textContent='Connecté. Retourne dans l’application.';
+      send({type:'ready',profile:body.profile});
+    }catch(e){document.getElementById('state').textContent='Connexion indisponible';send({type:'connection_error'});}
+  }
+  boot();
+})();
+</script></body></html>

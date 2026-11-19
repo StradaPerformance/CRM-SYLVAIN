@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "CRM Terrain",
+    "slug": "crm-terrain",
+    "scheme": "crmterrain",
+    "version": "0.2.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "backgroundColor": "#F4F7FB",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "fr.stradaperformance.crmterrain",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "CRM Terrain utilise votre position uniquement lorsque vous choisissez de vous localiser sur la carte de votre tournée."
+      }
+    },
+    "android": {
+      "package": "fr.stradaperformance.crmterrain",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#111D32"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": []
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "crmOrigin": "https://crm-sylvain-v2.hatchable.site"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autoriser CRM Terrain à sélectionner les photos de vos visites.",
+          "cameraPermission": "Autoriser CRM Terrain à photographier les visites."
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Afficher votre position sur la carte des visites lorsque vous l'autorisez."
+        }
+      ]
+    ]
+  }
+}
