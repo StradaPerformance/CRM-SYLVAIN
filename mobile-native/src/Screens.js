@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Badge, Button, C, Empty, formatDate, Loader, S, Section, shiftDay, time, todayParis } from './design';
+import { QuickStartCard } from './QuickStart';
 
 export function DaySelector({day,setDay}){
   return <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:13,marginTop:22,marginBottom:17}}>
@@ -35,7 +36,7 @@ export function EventCard({event,onPress}){
   </View>;
 }
 
-export function TodayScreen({day,setDay,events,loading,onEvent,refresh}){
+export function TodayScreen({day,setDay,events,loading,onEvent,refresh,onStartVisit,onResumeVisit}){
   const visits=events.filter(e=>!!e.store_id);
   const done=visits.filter(e=>e.visit_status==='completed').length;
   return <ScrollView contentContainerStyle={S.content} keyboardShouldPersistTaps="handled">
@@ -45,6 +46,7 @@ export function TodayScreen({day,setDay,events,loading,onEvent,refresh}){
         <Text style={{fontSize:25,color:C.navy,fontWeight:'900'}}>{loading?'–':count}</Text><Text style={{fontSize:11,color:C.muted,marginTop:4}}>{label}</Text>
       </View>)}
     </View>
+    {!loading?<QuickStartCard day={day} events={events} onOpen={onEvent} onStart={onStartVisit} onResume={onResumeVisit}/>:null}
     <Section eyebrow="MON PROGRAMME" title="Fil de la journée" right={<Pressable accessibilityLabel="Actualiser" onPress={refresh}><Text style={{fontSize:26,color:C.blue}}>↻</Text></Pressable>}/>
     {loading?<Loader text="Lecture de l’agenda…"/>:events.length?events.map(ev=><EventCard key={ev.id} event={ev} onPress={()=>onEvent(ev)}/>):<Empty title="Aucune visite programmée" subtitle="Les créneaux du planning du CRM apparaîtront ici. Tu peux naviguer entre les journées."/>}
   </ScrollView>;
