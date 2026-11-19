@@ -32,7 +32,7 @@ function labelValue(value){
   if(typeof value==='object')return 'Renseignée';
   return String(value);
 }
-export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true,extraSteps=[]}){
+export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true,extraSteps=[],onFinish}){
   const insets=useSafeAreaInsets();
   // Keep the action bar clear of the iOS home-indicator gesture area, including Expo Go.
   const bottomInset=Platform.OS==='ios'?Math.max(36,insets.bottom+12):14;
@@ -148,8 +148,8 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
       </Pressable>
       {!summaryStep?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>move(step+1)} style={{minHeight:56,flex:1.6,backgroundColor:C.blue,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
         <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':extra?'Continuer →':!question?.required&&!answered(draft)?'Passer →':'Suivant →'}</Text>
-      </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):onExit?.()} style={{minHeight:56,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
-        <Text style={{color:C.blue,fontWeight:'900'}}>{missing.length?'Réponses manquantes':'Retour à ma journée'}</Text>
+      </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):editable&&onFinish?onFinish():onExit?.()} style={{minHeight:56,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
+        <Text style={{color:C.blue,fontWeight:'900'}}>{missing.length?'Réponses manquantes':editable&&onFinish?'Terminer la visite':'Retour à ma journée'}</Text>
       </Pressable>}
     </View>
   </KeyboardAvoidingView>;
