@@ -25,7 +25,7 @@ export function SettingsScreen({onBack,online,meta,pending,progress,syncing,onSy
         <Text style={S.muted}>{label}</Text>
       </View>)}
     </View>
-    {!!(pending?.answers||pending?.actions)&&<Text style={[S.muted,{marginBottom:14}]}>{pending?.answers||0} réponses et {pending?.actions||0} actions encore à transmettre.</Text>}
+    {!!(pending?.answers||pending?.products||pending?.comments||pending?.actions)&&<Text style={[S.muted,{marginBottom:14}]}>{pending?.answers||0} réponses, {pending?.products||0} relevés produits, {pending?.comments||0} commentaires et {pending?.actions||0} actions encore à transmettre.</Text>}
     {pending?.items?.length?<View style={S.card}>
       <Text style={{fontWeight:'900',color:C.navy,marginBottom:10}}>Relevés conservés sur le téléphone</Text>
       {pending.items.map(v=><Pressable key={v.id} onPress={()=>onOpenVisit?.(v.id)}
