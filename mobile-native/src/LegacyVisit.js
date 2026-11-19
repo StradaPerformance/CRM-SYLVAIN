@@ -98,7 +98,7 @@ export function VisitScreen({visitId,api,onBack,onFinished}){
       content:<CommentStep value={comment} onChange={setComment} editable={editable}/>}
   ];
   return <QuestionFlow key={visitId} questions={questions} responses={responses} extraSteps={extraSteps}
-    editable={editable} onSave={saveAnswer} onExit={onBack}
+    editable={editable} onSave={saveAnswer} onExit={onBack} onFinish={finish}
     storeName={data.visit?.store_name||data.store?.name||'Ma visite'} error={error}
     saveLabel={editable?'Enregistrement au CRM à chaque étape':'Visite terminée · lecture seule'}
     summary={<>
@@ -127,7 +127,6 @@ export function VisitScreen({visitId,api,onBack,onFinished}){
         <Text style={S.eyebrow}>PERFECT STORE</Text>
         <Text style={{color:C.navy,fontWeight:'900',fontSize:27}}>{data.perfect_store.score} / 100</Text>
       </View>:null}
-      {editable?<Button label={busy?'Enregistrement…':'Terminer la visite'} onPress={finish}
-        disabled={busy||saving||missing.length>0} style={{marginTop:22}}/>:null}
+      {editable?null:null}
     </>}/>;
 }
