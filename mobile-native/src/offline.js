@@ -268,29 +268,50 @@ export async function prepareTour(owner,missions,mission,api,onProgress=()=>{}){
   assertOwner(owner);
   if(!(await isOnline()))throw Error('Pas de réseau. Les données déjà enregistrées restent disponibles.');
   await cachePut(owner,'__account__','account','missions',missions);
+  const dateParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const day=['year','month','day'].map(k=>dateParts.find(p=>p.type===k).value).join('-');
+
+  // Priority 1: today's diary and questionnaires. The next visit can start
+  // without waiting for the remaining 7 days / complete store inventory.
+  onProgress({stage:'today',message:'Préparation des visites du jour…'});
+  const todayRes=await api('GET',`/api/missions/${mission}/mobile-day?date=${day}`);
+  const todayEvents=todayRes.events||[];
+  await cachePut(owner,mission,'day',day,todayEvents);
+  const todayStores=[...new Set(todayEvents.map(e=>e.store_id).filter(Boolean))];
+
+  let templatesReady=0;
+  const prepared=new Set();
+  async function prepareIds(ids,total,stage){
+    for(let i=0;i<ids.length;i+=20){
+      const part=ids.slice(i,i+20);
+      const response=await api('POST',`/api/missions/${mission}/offline-templates`,{store_ids:part});
+      for(const [storeId,template] of Object.entries(response.templates||{})){
+        await cachePut(owner,mission,'template',storeId,template);
+        prepared.add(storeId);
+        templatesReady++;
+      }
+      onProgress({stage,current:Math.min(total,i+part.length),total});
+    }
+  }
+  if(todayStores.length)await prepareIds(todayStores,todayStores.length,'today');
+
+  // Priority 2: store inventory, objectives and further diary dates.
+  onProgress({stage:'parc',message:'Mise à jour du parc…'});
   const storesRes=await api('GET',`/api/missions/${mission}/stores`);
-  await cachePut(owner,mission,'data','stores',storesRes.stores||[]);
+  const stores=storesRes.stores||[];
+  await cachePut(owner,mission,'data','stores',stores);
   onProgress({stage:'parc',current:1,total:1});
   const goalsRes=await api('GET',`/api/missions/${mission}/goals`);
   await cachePut(owner,mission,'data','goals',goalsRes.goals||[]);
-  const dateParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
-  const day=['year','month','day'].map(k=>dateParts.find(p=>p.type===k).value).join('-');
-  for(let offset=0;offset<8;offset++){
+  for(let offset=1;offset<8;offset++){
     const date=nextDate(day,offset);
     const agenda=await api('GET',`/api/missions/${mission}/mobile-day?date=${date}`);
     await cachePut(owner,mission,'day',date,agenda.events||[]);
   }
-  const stores=storesRes.stores||[];
-  let done=0,templatesReady=0;
-  for(let i=0;i<stores.length;i+=20){
-    const part=stores.slice(i,i+20);
-    const result=await api('POST',`/api/missions/${mission}/offline-templates`,{store_ids:part.map(s=>s.id)});
-    for(const [storeId,template] of Object.entries(result.templates||{})){
-      await cachePut(owner,mission,'template',storeId,template);templatesReady++;
-    }
-    done+=part.length;
-    onProgress({stage:'questionnaires',current:done,total:stores.length});
-  }
+  // Priority 3: every other authorized store. Do not invalidate existing
+  // downloaded templates, even when a partial refresh fails.
+  const remaining=stores.map(s=>s.id).filter(id=>!prepared.has(id));
+  if(remaining.length)await prepareIds(remaining,remaining.length,'questionnaires');
   const meta={at:now(),stores:stores.length,templates:templatesReady,days:8};
   await cachePut(owner,mission,'meta','last-sync',meta);
   return meta;
