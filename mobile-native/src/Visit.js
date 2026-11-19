@@ -77,7 +77,7 @@ export function VisitScreen({owner,draftId,onBack,onUpdate,onFinished}){
      content:<CommentStep value={comment} onChange={setComment} editable={editing}/>}
   ];
   return <QuestionFlow key={draftId} questions={questions} responses={responses} extraSteps={extraSteps} editable={editing}
-    onSave={saveAnswer} onExit={onBack} storeName={data.store_name} error={error||data.error}
+    onSave={saveAnswer} onExit={onBack} onFinish={finish} storeName={data.store_name} error={error||data.error}
     saveLabel={data.status==='synced'?'Envoyée au CRM':data.status==='ready'?'En attente de synchronisation':'Sauvegarde sur le téléphone'}
     summary={<>
       <View style={[S.card,{marginTop:9}]}><Text style={S.eyebrow}>DISTRIBUTION PRODUITS</Text>
@@ -109,8 +109,7 @@ export function VisitScreen({owner,draftId,onBack,onUpdate,onFinished}){
         <TextInput style={S.input} placeholder="Nouvelle action à suivre…" value={action} onChangeText={setAction} maxLength={300}/>
         <Button label="Ajouter l’action" onPress={addAction} disabled={busy||!action.trim()} style={{marginTop:11}}/>
       </View>:null}
-      {editing?<Button label={busy?'Sauvegarde…':'Terminer la visite'} onPress={finish} disabled={busy||missing.length>0}
-        style={{marginTop:20}}/>:data.status==='ready'?
+      {editing?null:data.status==='ready'?
         <Button label="Réouvrir pour correction" outline onPress={async()=>{try{await resumeLocalVisit(owner,draftId);await load();onUpdate?.()}catch(e){setError(e.message)}}} style={{marginTop:20}}/>:null}
     </>}/>;
 }
