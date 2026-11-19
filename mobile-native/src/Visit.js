@@ -2,13 +2,16 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {Alert,Image,Text,TextInput,View} from 'react-native';
 import {Badge,Button,C,Empty,Loader,S,Section} from './design';
 import {QuestionFlow} from './QuestionFlow';
-import {getLocalVisit,saveLocalAnswer,addLocalAction,captureLocalPhoto,finishLocalVisit,resumeLocalVisit} from './offline';
+import {ProductsStep,CommentStep,productCoverage} from './VisitExtras';
+import {getLocalVisit,saveLocalAnswer,saveLocalProductReading,saveLocalVisitComment,addLocalAction,captureLocalPhoto,finishLocalVisit,resumeLocalVisit} from './offline';
 
 export function VisitScreen({owner,draftId,onBack,onUpdate,onFinished}){
   const [data,setData]=useState(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [action,setAction]=useState('');
+  const [comment,setComment]=useState('');
+  useEffect(()=>{if(data?.comment!=null)setComment(data.comment)},[draftId,data?.comment]);
   const load=useCallback(async()=>{
     try{const d=await getLocalVisit(owner,draftId);setData(d);if(!d)setError('Ce relevé local n’existe plus.');}
     catch(e){setError(e.message)}
@@ -17,6 +20,18 @@ export function VisitScreen({owner,draftId,onBack,onUpdate,onFinished}){
   const editing=data?.status==='editing';
   const questions=data?.template?.questions||[];
   const responses=Object.fromEntries((data?.answers||[]).map(a=>[a.question_id,a.value]));
+  const products=data?.template?.assortment?.products||[];
+  const readings=data?.products||[];
+  const coverage=productCoverage(products,readings);
+  const positions=data?.template?.product_positions||[];
+  async function saveReading(productId,payload){
+    try{await saveLocalProductReading(owner,draftId,productId,payload);await load();onUpdate?.();setError('')}
+    catch(e){setError('Référence non enregistrée : '+e.message);throw e}
+  }
+  async function saveComment(){
+    try{await saveLocalVisitComment(owner,draftId,comment);await load();onUpdate?.();setError('')}
+    catch(e){setError('Commentaire non enregistré : '+e.message);throw e}
+  }
   const missing=questions.filter(q=>q.required&&!q.conditions&&(responses[q.id]==null||responses[q.id]===''));
   async function saveAnswer(qid,value){
     try{
@@ -40,6 +55,7 @@ export function VisitScreen({owner,draftId,onBack,onUpdate,onFinished}){
   }
   function finish(){
     if(missing.length){setError('Réponses obligatoires manquantes : '+missing.slice(0,3).map(q=>q.label).join(', '));return;}
+    if(coverage.total.remaining){setError('Indique la présence ou l’absence des '+coverage.total.remaining+' référence(s) manquante(s).');return;}
     Alert.alert('Terminer la visite','Le relevé sera conservé sur ce téléphone jusqu’à confirmation de sa synchronisation avec le CRM.',[
       {text:'Annuler',style:'cancel'},
       {text:'Terminer et mettre en attente',onPress:async()=>{
@@ -53,10 +69,22 @@ export function VisitScreen({owner,draftId,onBack,onUpdate,onFinished}){
     ]);
   }
   if(!data)return <View style={{flex:1,justifyContent:'center',padding:24}}>{error?<Empty title="Relevé indisponible" subtitle={error}/>:<Loader text="Ouverture du relevé…"/>}</View>;
-  return <QuestionFlow key={draftId} questions={questions} responses={responses} editable={editing}
+  const extraSteps=[
+    {id:'products',title:'Références produits',canNext:coverage.total.remaining===0,
+     missingMessage:coverage.total.remaining+' référence(s) restent à renseigner (présent ou absent).',
+     content:<ProductsStep products={products} readings={readings} editable={editing} onSave={saveReading} positions={positions}/>},
+    {id:'comment',title:'Commentaire de visite',onNext:editing?saveComment:undefined,onExit:editing?saveComment:undefined,
+     content:<CommentStep value={comment} onChange={setComment} editable={editing}/>}
+  ];
+  return <QuestionFlow key={draftId} questions={questions} responses={responses} extraSteps={extraSteps} editable={editing}
     onSave={saveAnswer} onExit={onBack} storeName={data.store_name} error={error||data.error}
     saveLabel={data.status==='synced'?'Envoyée au CRM':data.status==='ready'?'En attente de synchronisation':'Sauvegarde sur le téléphone'}
     summary={<>
+      <View style={[S.card,{marginTop:9}]}><Text style={S.eyebrow}>DISTRIBUTION PRODUITS</Text>
+        <Text style={{color:C.navy,fontWeight:'800',fontSize:13,marginTop:5}}>DNO : {coverage.required.percent==null?'—':coverage.required.percent+' %'} · DNP : {coverage.picking.percent==null?'—':coverage.picking.percent+' %'}</Text>
+        <Text style={[S.muted,{marginTop:6}]}>{coverage.total.present} références présentes · {coverage.total.absent} absentes · {coverage.total.remaining} à renseigner</Text>
+        <Text style={[S.muted,{marginTop:8}]}>Commentaire : {comment||'Aucun commentaire'}</Text>
+      </View>
       <View style={[S.row,{marginBottom:15}]}>
         <Badge text={data.status==='synced'?'Envoyée au CRM':data.status==='ready'?'Prête à envoyer':'Brouillon local'} tone={data.status==='synced'?'green':'amber'}/>
         <Text style={[S.muted,{marginLeft:9,flex:1}]}>Réponses conservées sur cet appareil</Text>
