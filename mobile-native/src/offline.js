@@ -54,6 +54,18 @@ export async function localDb(){
     CREATE TABLE IF NOT EXISTS photos_local (
       id TEXT PRIMARY KEY, visit_id TEXT NOT NULL REFERENCES visits_local(id),
       uri TEXT, bytes INTEGER NOT NULL, sent INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS product_readings_local (
+      visit_id TEXT NOT NULL REFERENCES visits_local(id),
+      mission_product_id TEXT NOT NULL,
+      present INTEGER NOT NULL,
+      price REAL,facings INTEGER,position TEXT,merchandising_note TEXT,
+      revision INTEGER NOT NULL DEFAULT 1,synced_revision INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY(visit_id,mission_product_id)
+    );
+    CREATE TABLE IF NOT EXISTS visit_comments_local (
+      visit_id TEXT PRIMARY KEY REFERENCES visits_local(id),comment TEXT NOT NULL DEFAULT '',
+      revision INTEGER NOT NULL DEFAULT 1,synced_revision INTEGER NOT NULL DEFAULT 0
     );`);
   database=db;
   return db;
@@ -115,13 +127,16 @@ export async function getLocalVisit(owner,id){
   assertOwner(owner);const db=await localDb();
   const v=await db.getFirstAsync('SELECT * FROM visits_local WHERE id=? AND owner=?',[id,owner]);
   if(!v)return null;
-  const [template, answers, actions, photos]=await Promise.all([
+  const [template, answers, actions, photos, products, comment]=await Promise.all([
     Promise.resolve(fromJSON(v.template_json)),
     db.getAllAsync('SELECT * FROM answers_local WHERE visit_id=?',[id]),
     db.getAllAsync('SELECT * FROM actions_local WHERE visit_id=? ORDER BY rowid',[id]),
     db.getAllAsync('SELECT * FROM photos_local WHERE visit_id=? ORDER BY rowid',[id]),
+    db.getAllAsync('SELECT * FROM product_readings_local WHERE visit_id=?',[id]),
+    db.getFirstAsync('SELECT * FROM visit_comments_local WHERE visit_id=?',[id]),
   ]);
-  return {...v,template,answers:answers.map(a=>({...a,value:fromJSON(a.value_json)})),actions,photos};
+  return {...v,template,answers:answers.map(a=>({...a,value:fromJSON(a.value_json)})),
+    actions,photos,products:products.map(p=>({...p,present:p.present===1})),comment:comment?.comment||''};
 }
 export async function saveLocalAnswer(owner,id,questionId,value){
   const db=await localDb();
@@ -130,6 +145,42 @@ export async function saveLocalAnswer(owner,id,questionId,value){
   await db.runAsync(`INSERT INTO answers_local(visit_id,question_id,value_json,revision,synced_revision)
     VALUES(?,?,?,1,0) ON CONFLICT(visit_id,question_id)
     DO UPDATE SET value_json=excluded.value_json,revision=answers_local.revision+1`,[id,questionId,JSON.stringify(value)]);
+  await db.runAsync("UPDATE visits_local SET updated_at=?,error='' WHERE id=? AND owner=?",[now(),id,owner]);
+}
+export async function saveLocalProductReading(owner,id,productId,body){
+  assertOwner(owner);const db=await localDb();
+  const visit=await db.getFirstAsync("SELECT template_json,status FROM visits_local WHERE id=? AND owner=?",[id,owner]);
+  if(!visit||visit.status!=='editing')throw Error('La visite n’est plus modifiable.');
+  const valid=fromJSON(visit.template_json)?.assortment?.products||[];
+  if(!valid.some(p=>p.mission_product_id===productId))throw Error('Référence absente de l’assortiment téléchargé.');
+  if(typeof body?.present!=='boolean')throw Error('Présence ou absence obligatoire.');
+  const price=body.price===''||body.price==null?null:Number(body.price);
+  const facings=body.facings===''||body.facings==null?null:Number(body.facings);
+  if(price!==null&&(!Number.isFinite(price)||price<0)||facings!==null&&(!Number.isInteger(facings)||facings<0))
+    throw Error('Prix ou nombre de facings invalide.');
+  const position=String(body.position||'').trim();
+  const note=String(body.merchandising_note||'').trim();
+  if(position.length>70||note.length>500)throw Error('Emplacement ou remarque trop long.');
+  await db.runAsync(`INSERT INTO product_readings_local
+    (visit_id,mission_product_id,present,price,facings,position,merchandising_note,revision,synced_revision)
+    VALUES(?,?,?,?,?,?,?,1,0) ON CONFLICT(visit_id,mission_product_id)
+    DO UPDATE SET present=excluded.present,price=excluded.price,facings=excluded.facings,
+      position=excluded.position,merchandising_note=excluded.merchandising_note,
+      revision=product_readings_local.revision+1`,
+    [id,productId,body.present?1:0,price,facings,position,note]);
+  await db.runAsync('UPDATE visits_local SET updated_at=?,error=\'\' WHERE id=? AND owner=?',[now(),id,owner]);
+}
+export async function saveLocalVisitComment(owner,id,comment){
+  assertOwner(owner);const db=await localDb();
+  if(!(await db.getFirstAsync("SELECT 1 FROM visits_local WHERE id=? AND owner=? AND status='editing'",[id,owner])))
+    throw Error('La visite n’est plus modifiable.');
+  const text=String(comment||'').trim();
+  if(text.length>2000)throw Error('Commentaire trop long.');
+  const existing=await db.getFirstAsync('SELECT comment FROM visit_comments_local WHERE visit_id=?',[id]);
+  if(existing?.comment===text||(!existing&&!text))return;
+  await db.runAsync(`INSERT INTO visit_comments_local(visit_id,comment,revision,synced_revision)
+    VALUES(?,?,1,0) ON CONFLICT(visit_id) DO UPDATE SET
+    comment=excluded.comment,revision=visit_comments_local.revision+1`,[id,text]);
   await db.runAsync("UPDATE visits_local SET updated_at=?,error='' WHERE id=? AND owner=?",[now(),id,owner]);
 }
 export async function addLocalAction(owner,id,title){
