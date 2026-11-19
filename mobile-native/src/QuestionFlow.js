@@ -32,7 +32,7 @@ function labelValue(value){
   if(typeof value==='object')return 'Renseignée';
   return String(value);
 }
-export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true}){
+export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true,extraSteps=[]}){
   const insets=useSafeAreaInsets();
   // Keep the action bar clear of the iOS home-indicator gesture area, including Expo Go.
   const bottomInset=Platform.OS==='ios'?Math.max(36,insets.bottom+12):14;
@@ -41,9 +41,11 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
   const [busy,setBusy]=useState(false);
   const [localError,setLocalError]=useState('');
   const lock=useRef(false);
-  const total=questions.length;
+  const questionCount=questions.length;
+  const total=questionCount+extraSteps.length;
   const summaryStep=step>=total;
-  const question=summaryStep?null:questions[step];
+  const extra=!summaryStep&&step>=questionCount?extraSteps[step-questionCount]:null;
+  const question=summaryStep||extra?null:questions[step];
   const saved=question?responses[question.id]:undefined;
   const count=questions.filter(q=>answered(responses[q.id])).length;
   const position=total===0?100:Math.round((Math.min(step,total)/total)*100);
@@ -52,7 +54,16 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
   const selected=v=>sameValue(draft,v);
   async function move(next,allowEmptyRequired=false){
     if(lock.current||!canContinue)return;
-    if(!question){setStep(Math.max(0,Math.min(total,next)));return;}
+    if(!question){
+      if(extra && next>step){
+        lock.current=true;setBusy(true);setLocalError('');
+        try{if(extra.canNext===false)throw Error(extra.missingMessage||'Complète cette étape avant de continuer.');
+          await extra.onNext?.();setStep(Math.max(0,Math.min(total,next)));
+        }catch(e){setLocalError(String(e?.message||'Enregistrement impossible.'));}
+        finally{lock.current=false;setBusy(false)}
+      }else setStep(Math.max(0,Math.min(total,next)));
+      return;
+    }
     let val;
     try{val=normalizeDraft(question,draft);}
     catch(e){setLocalError(e.message);return;}
@@ -71,6 +82,10 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
     }finally{lock.current=false;setBusy(false)}
   }
   const goExit=()=>{
+    if(extra){
+      if(extra.onExit){Promise.resolve(extra.onExit()).then(()=>onExit?.()).catch(e=>setLocalError('Impossible d’enregistrer : '+e.message));return;}
+      onExit?.();return;
+    }
     if(!editable||!question||sameValue(saved,draft)){onExit?.();return;}
     Alert.alert('Réponse en cours','Enregistrer cette réponse avant de quitter le relevé ?',[
       {text:'Rester',style:'cancel'},
@@ -85,7 +100,7 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
       </Pressable>
       <Text numberOfLines={1} style={{color:C.navy,fontWeight:'900',fontSize:20}}>{storeName||'Ma visite'}</Text>
       <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:14}}>
-        <Text style={{color:C.blue,fontSize:12,fontWeight:'900'}}>{summaryStep?'Récapitulatif':`Question ${step+1} / ${total}`}</Text>
+        <Text style={{color:C.blue,fontSize:12,fontWeight:'900'}}>{summaryStep?'Récapitulatif':extra?extra.title:`Question ${step+1} / ${questionCount}`}</Text>
         <Text style={{fontSize:12,color:C.muted}}>{count} réponse{count>1?'s':''} renseignée{count>1?'s':''} · {position}%</Text>
       </View>
       <View accessibilityRole="progressbar" accessibilityValue={{min:0,max:100,now:position}} style={{height:7,borderRadius:10,backgroundColor:'#E6ECF5',overflow:'hidden',marginTop:9}}>
@@ -93,7 +108,7 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
       </View>
       <Text style={{fontSize:11,color:C.muted,marginTop:8}}>{saveLabel||'Enregistrement en passant à la question suivante'}</Text>
     </View>
-    <ScrollView key={summaryStep?'summary':question?.id||step} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:24,paddingBottom:28}} keyboardShouldPersistTaps="handled">
+    <ScrollView key={summaryStep?'summary':extra?.id||question?.id||step} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:24,paddingBottom:28}} keyboardShouldPersistTaps="handled">
       {!!(localError||error)&&<Text style={{color:C.danger,backgroundColor:C.redSoft,padding:12,borderRadius:10,marginBottom:16}}>{localError||error}</Text>}
       {summaryStep?<>
         <Text style={S.eyebrow}>FIN DU QUESTIONNAIRE</Text>
@@ -108,7 +123,7 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
           <Text style={{fontSize:12,color:C.danger,marginTop:5}}>Appuyer pour retourner à la première.</Text>
         </Pressable>}
         {summary}
-      </>:question?<>
+      </>:extra?<>{extra.content}</>:question?<>
         <Text style={S.eyebrow}>{question.required?'RÉPONSE OBLIGATOIRE':'QUESTION FACULTATIVE'}</Text>
         <Text style={{fontWeight:'900',fontSize:25,lineHeight:33,color:C.navy,marginTop:10,marginBottom:23}}>{question.label}</Text>
         {isBoolean(question)?<View style={{gap:11}}>
@@ -132,7 +147,7 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
         <Text style={{color:C.navy,fontWeight:'800'}}>Précédent</Text>
       </Pressable>
       {!summaryStep?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>move(step+1)} style={{minHeight:56,flex:1.6,backgroundColor:C.blue,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
-        <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':!question?.required&&!answered(draft)?'Passer →':'Suivant →'}</Text>
+        <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':extra?'Continuer →':!question?.required&&!answered(draft)?'Passer →':'Suivant →'}</Text>
       </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):onExit?.()} style={{minHeight:56,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
         <Text style={{color:C.blue,fontWeight:'900'}}>{missing.length?'Réponses manquantes':'Retour à ma journée'}</Text>
       </Pressable>}
