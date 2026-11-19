@@ -1,7 +1,7 @@
 // CRM Terrain : aperçu React Native compatible Expo Go SDK 54 sur iPhone.
 // Aperçu fonctionnel basé sur la V0.1 ; moteur hors connexion V0.2 non inclus dans cet aperçu.
 import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
-import { Alert, ActivityIndicator, Linking, Modal, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
+import { Alert, ActivityIndicator, Linking, Image, Modal, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
@@ -246,6 +246,8 @@ function EventDetail({event,onBack,onStart,onOpenVisit,busy}){
 
 
 
+
+
 // Shared between local-first and connected visit flows.
 // One question per screen; every transition persists before moving on.
 const answered=value=>value!==undefined&&value!==null&&!(typeof value==='string'&&value.trim()==='');
@@ -275,7 +277,7 @@ function labelValue(value){
   if(typeof value==='object')return 'Renseignée';
   return String(value);
 }
-function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true}){
+function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true,extraSteps=[]}){
   const insets=useSafeAreaInsets();
   // Keep the action bar clear of the iOS home-indicator gesture area, including Expo Go.
   const bottomInset=Platform.OS==='ios'?Math.max(36,insets.bottom+12):14;
@@ -284,9 +286,11 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
   const [busy,setBusy]=useState(false);
   const [localError,setLocalError]=useState('');
   const lock=useRef(false);
-  const total=questions.length;
+  const questionCount=questions.length;
+  const total=questionCount+extraSteps.length;
   const summaryStep=step>=total;
-  const question=summaryStep?null:questions[step];
+  const extra=!summaryStep&&step>=questionCount?extraSteps[step-questionCount]:null;
+  const question=summaryStep||extra?null:questions[step];
   const saved=question?responses[question.id]:undefined;
   const count=questions.filter(q=>answered(responses[q.id])).length;
   const position=total===0?100:Math.round((Math.min(step,total)/total)*100);
@@ -295,7 +299,16 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
   const selected=v=>sameValue(draft,v);
   async function move(next,allowEmptyRequired=false){
     if(lock.current||!canContinue)return;
-    if(!question){setStep(Math.max(0,Math.min(total,next)));return;}
+    if(!question){
+      if(extra && next>step){
+        lock.current=true;setBusy(true);setLocalError('');
+        try{if(extra.canNext===false)throw Error(extra.missingMessage||'Complète cette étape avant de continuer.');
+          await extra.onNext?.();setStep(Math.max(0,Math.min(total,next)));
+        }catch(e){setLocalError(String(e?.message||'Enregistrement impossible.'));}
+        finally{lock.current=false;setBusy(false)}
+      }else setStep(Math.max(0,Math.min(total,next)));
+      return;
+    }
     let val;
     try{val=normalizeDraft(question,draft);}
     catch(e){setLocalError(e.message);return;}
@@ -314,6 +327,10 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
     }finally{lock.current=false;setBusy(false)}
   }
   const goExit=()=>{
+    if(extra){
+      if(extra.onExit){Promise.resolve(extra.onExit()).then(()=>onExit?.()).catch(e=>setLocalError('Impossible d’enregistrer : '+e.message));return;}
+      onExit?.();return;
+    }
     if(!editable||!question||sameValue(saved,draft)){onExit?.();return;}
     Alert.alert('Réponse en cours','Enregistrer cette réponse avant de quitter le relevé ?',[
       {text:'Rester',style:'cancel'},
@@ -328,7 +345,7 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
       </Pressable>
       <Text numberOfLines={1} style={{color:C.navy,fontWeight:'900',fontSize:20}}>{storeName||'Ma visite'}</Text>
       <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:14}}>
-        <Text style={{color:C.blue,fontSize:12,fontWeight:'900'}}>{summaryStep?'Récapitulatif':`Question ${step+1} / ${total}`}</Text>
+        <Text style={{color:C.blue,fontSize:12,fontWeight:'900'}}>{summaryStep?'Récapitulatif':extra?extra.title:`Question ${step+1} / ${questionCount}`}</Text>
         <Text style={{fontSize:12,color:C.muted}}>{count} réponse{count>1?'s':''} renseignée{count>1?'s':''} · {position}%</Text>
       </View>
       <View accessibilityRole="progressbar" accessibilityValue={{min:0,max:100,now:position}} style={{height:7,borderRadius:10,backgroundColor:'#E6ECF5',overflow:'hidden',marginTop:9}}>
@@ -336,7 +353,7 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
       </View>
       <Text style={{fontSize:11,color:C.muted,marginTop:8}}>{saveLabel||'Enregistrement en passant à la question suivante'}</Text>
     </View>
-    <ScrollView key={summaryStep?'summary':question?.id||step} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:24,paddingBottom:28}} keyboardShouldPersistTaps="handled">
+    <ScrollView key={summaryStep?'summary':extra?.id||question?.id||step} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:24,paddingBottom:28}} keyboardShouldPersistTaps="handled">
       {!!(localError||error)&&<Text style={{color:C.danger,backgroundColor:C.redSoft,padding:12,borderRadius:10,marginBottom:16}}>{localError||error}</Text>}
       {summaryStep?<>
         <Text style={S.eyebrow}>FIN DU QUESTIONNAIRE</Text>
@@ -351,7 +368,7 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
           <Text style={{fontSize:12,color:C.danger,marginTop:5}}>Appuyer pour retourner à la première.</Text>
         </Pressable>}
         {summary}
-      </>:question?<>
+      </>:extra?<>{extra.content}</>:question?<>
         <Text style={S.eyebrow}>{question.required?'RÉPONSE OBLIGATOIRE':'QUESTION FACULTATIVE'}</Text>
         <Text style={{fontWeight:'900',fontSize:25,lineHeight:33,color:C.navy,marginTop:10,marginBottom:23}}>{question.label}</Text>
         {isBoolean(question)?<View style={{gap:11}}>
@@ -375,7 +392,7 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
         <Text style={{color:C.navy,fontWeight:'800'}}>Précédent</Text>
       </Pressable>
       {!summaryStep?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>move(step+1)} style={{minHeight:56,flex:1.6,backgroundColor:C.blue,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
-        <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':!question?.required&&!answered(draft)?'Passer →':'Suivant →'}</Text>
+        <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':extra?'Continuer →':!question?.required&&!answered(draft)?'Passer →':'Suivant →'}</Text>
       </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):onExit?.()} style={{minHeight:56,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
         <Text style={{color:C.blue,fontWeight:'900'}}>{missing.length?'Réponses manquantes':'Retour à ma journée'}</Text>
       </Pressable>}
@@ -384,7 +401,161 @@ function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeNam
 }
 
 
-// FILE: src/Visit.js (online preview)
+// FILE: src/VisitExtras.js
+
+
+
+
+const DEFAULT_POSITIONS=[
+ 'Fond de rayon / linéaire','Tête de gondole (TG)','Univers Produits du monde',
+ 'Zone promotionnelle','Allée centrale','Îlot / podium','Meuble additionnel',
+ 'Bac frais / surgelés','Meuble réfrigéré','Meuble surgelé',
+ 'Zone saisonnière','Près des caisses','Cross-merchandising','Palette / box','Réserve'
+];
+function readingsByProduct(rows=[]){
+ const indexed={};
+ for(const r of rows)if(r.mission_product_id)indexed[r.mission_product_id]=r;
+ return indexed;
+}
+function productCoverage(products=[],readings=[]){
+ const byId=readingsByProduct(readings);
+ const group=(list)=>{
+   const present=list.filter(p=>byId[p.mission_product_id]?.present===true).length;
+   const absent=list.filter(p=>byId[p.mission_product_id]?.present===false).length;
+   return {total:list.length,present,absent,remaining:list.length-present-absent,
+     percent:list.length?Math.round(present/list.length*100):null};
+ };
+ const required=products.filter(p=>p.required===true);
+ const picking=products.filter(p=>p.required!==true);
+ return {required:group(required),picking:group(picking),total:group(products)};
+}
+const numeric=(v,integer=false)=>{
+ if(String(v??'').trim()==='')return null;
+ const n=Number(String(v).replace(',','.'));
+ if(!Number.isFinite(n)||n<0||(integer&&!Number.isInteger(n)))throw Error('Indique un nombre valide.');
+ return n;
+};
+function ProductLine({product,reading,positions,editable,onSave}){
+ const [more,setMore]=useState(false),[sending,setSending]=useState(false),[error,setError]=useState('');
+ const [draft,setDraft]=useState({price:'',facings:'',position:'',merchandising_note:''});
+ useEffect(()=>setDraft({
+   price:reading?.price==null?'':String(reading.price),
+   facings:reading?.facings==null?'':String(reading.facings),
+   position:reading?.position||'',
+   merchandising_note:reading?.merchandising_note||''
+ }),[product.mission_product_id,reading?.price,reading?.facings,reading?.position,reading?.merchandising_note]);
+ const ready=reading?.present===true||reading?.present===false;
+ async function save(patch){
+   if(!editable||sending)return;
+   setSending(true);setError('');
+   try{
+     const next={present:reading?.present??null,price:numeric(draft.price),facings:numeric(draft.facings,true),
+       position:draft.position,merchandising_note:draft.merchandising_note,...patch};
+     if(next.present!==true&&next.present!==false)throw Error('Sélectionne « Présent » ou « Absent » pour commencer.');
+     await onSave(product.mission_product_id,next);
+   }catch(e){setError(e?.message||'Erreur d’enregistrement.');}
+   finally{setSending(false)}
+ }
+ return <View style={[S.card,{padding:14,marginBottom:9,borderColor:error?C.danger:C.border}]}>
+   <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',gap:9}}>
+     <View style={{flex:1}}>
+       <Text style={{fontSize:14,color:C.navy,fontWeight:'800'}} numberOfLines={3}>{product.name||product.sku||'Référence'}</Text>
+       <Text style={[S.muted,{marginTop:4}]} numberOfLines={2}>{[product.brand,product.sku].filter(Boolean).join(' · ')}</Text>
+     </View>
+     <Text style={{fontSize:10,fontWeight:'800',color:product.required?C.blue:'#7B659A',backgroundColor:product.required?C.blueSoft:'#F2EEFA',paddingHorizontal:8,paddingVertical:5,borderRadius:8}}>{product.required?'DNO':'DNP'}</Text>
+   </View>
+   <View style={{flexDirection:'row',gap:8,marginTop:13}}>
+     {[[true,'Présent'],[false,'Absent']].map(([value,label])=>{
+       const selected=reading?.present===value;
+       return <Pressable key={label} accessibilityRole="button" disabled={!editable||sending} onPress={()=>save({present:value})}
+         style={{flex:1,minHeight:47,borderRadius:11,borderWidth:selected?2:1,borderColor:selected?(value?C.green:C.danger):C.border,backgroundColor:selected?(value?C.greenSoft:C.redSoft):'white',alignItems:'center',justifyContent:'center'}}>
+         <Text style={{fontSize:14,fontWeight:'800',color:selected?(value?C.green:C.danger):C.text}}>{selected?'✓  ':''}{label}</Text>
+       </Pressable>;
+     })}
+   </View>
+   {!ready?<Text style={{color:'#956D2C',fontSize:11,marginTop:7}}>Présence à renseigner</Text>:null}
+   {sending?<Text style={{color:C.blue,fontSize:11,marginTop:7}}>Enregistrement…</Text>:null}
+   {error?<Text style={{color:C.danger,fontSize:11,marginTop:7}}>{error}</Text>:null}
+   <Pressable onPress={()=>setMore(v=>!v)} style={{paddingTop:13,paddingBottom:5}}>
+     <Text style={{color:C.blue,fontWeight:'750',fontSize:12}}>{more?'Masquer les détails ↑':'Prix, facings, emplacement et remarque ↓'}</Text>
+   </Pressable>
+   {more?<View style={{marginTop:12,gap:12}}>
+     <View style={{flexDirection:'row',gap:10}}>
+       <View style={{flex:1}}><Text style={S.eyebrow}>PRIX EN €</Text>
+         <TextInput editable={editable} style={S.input} value={draft.price} onChangeText={v=>setDraft(x=>({...x,price:v}))} onBlur={()=>{if(ready)save({})}} placeholder="0,00" keyboardType="decimal-pad"/>
+       </View>
+       <View style={{flex:1}}><Text style={S.eyebrow}>FACINGS</Text>
+         <TextInput editable={editable} style={S.input} value={draft.facings} onChangeText={v=>setDraft(x=>({...x,facings:v}))} onBlur={()=>{if(ready)save({})}} placeholder="0" keyboardType="number-pad"/>
+       </View>
+     </View>
+     <Text style={S.eyebrow}>EMPLACEMENT</Text>
+     <View style={{flexDirection:'row',flexWrap:'wrap',gap:6}}>
+       {(positions.length?positions:DEFAULT_POSITIONS).map((name,i)=><Pressable key={i} disabled={!editable} onPress={()=>{setDraft(x=>({...x,position:name}));if(ready)save({position:name});}}
+         style={{borderRadius:9,borderWidth:1,borderColor:draft.position===name?C.blue:C.border,backgroundColor:draft.position===name?C.blueSoft:'white',padding:9}}>
+         <Text style={{fontSize:11,color:draft.position===name?C.blue:C.text}}>{name}</Text>
+       </Pressable>)}
+     </View>
+     <Text style={S.eyebrow}>REMARQUE SUR LA RÉFÉRENCE</Text>
+     <TextInput editable={editable} style={[S.input,{minHeight:80,textAlignVertical:'top',paddingTop:12}]} multiline maxLength={500}
+       placeholder="Ex. rupture, facing incorrect, zone promotionnelle…"
+       value={draft.merchandising_note} onChangeText={v=>setDraft(x=>({...x,merchandising_note:v}))} onBlur={()=>{if(ready)save({})}}/>
+     <Pressable accessibilityRole="button" onPress={()=>save({})} disabled={!editable||sending} style={[S.buttonLight,{minHeight:45}]}>
+       <Text style={S.buttonLightText}>Enregistrer les détails</Text>
+     </Pressable>
+   </View>:null}
+ </View>;
+}
+function Metric({name,data,color=C.blue}){
+ return <View style={{backgroundColor:'white',borderRadius:11,borderWidth:1,borderColor:C.border,flex:1,padding:11}}>
+   <Text style={{color:C.muted,fontSize:11,fontWeight:'700'}}>{name}</Text>
+   <Text style={{color,fontSize:22,fontWeight:'900',marginTop:5}}>{data.total?data.percent+' %':'—'}</Text>
+   <Text style={{color:C.muted,fontSize:10,marginTop:3}}>{data.present} présent{data.present>1?'s':''} / {data.total} références</Text>
+ </View>;
+}
+function ProductsStep({products=[],readings=[],editable,onSave,positions=[]}){
+ const coverage=productCoverage(products,readings);
+ const byId=useMemo(()=>readingsByProduct(readings),[readings]);
+ if(!products.length)return <View style={S.card}>
+   <Text style={{fontSize:15,fontWeight:'800',color:C.text}}>Aucune référence affectée à ce magasin</Text>
+   <Text style={[S.muted,{marginTop:7}]}>L’assortiment est déterminé par la centrale et la strate. Il n’est pas remplacé par une liste générale de produits.</Text>
+ </View>;
+ return <View>
+   <Text style={S.eyebrow}>RELEVÉ DES RÉFÉRENCES</Text>
+   <Text style={{fontSize:23,fontWeight:'900',color:C.navy,marginTop:8,marginBottom:9}}>Présence en rayon</Text>
+   <Text style={[S.muted,{marginBottom:16}]}>Pour chaque référence, indique « Présent » ou « Absent ». Les deux DN sont calculées sur tout l’assortiment du magasin, et non uniquement sur les références déjà saisies.</Text>
+   <View style={{flexDirection:'row',gap:9,marginBottom:13}}>
+     <Metric name="DN obligatoire · DNO" data={coverage.required}/>
+     <Metric name="DN picking · DNP" data={coverage.picking} color="#6752A9"/>
+   </View>
+   {coverage.total.remaining>0?<View style={{padding:12,backgroundColor:C.amberSoft,borderRadius:11,marginBottom:16}}>
+     <Text style={{fontSize:12,fontWeight:'800',color:C.amber}}>{coverage.total.remaining} référence(s) encore à renseigner sur {coverage.total.total}</Text>
+   </View>:<View style={{padding:12,backgroundColor:C.greenSoft,borderRadius:11,marginBottom:16}}>
+     <Text style={{fontSize:12,fontWeight:'800',color:C.green}}>Toutes les références ont une réponse</Text>
+   </View>}
+   {['required','picking'].map(group=>{
+     const list=products.filter(p=>group==='required'?p.required===true:p.required!==true);
+     if(!list.length)return null;
+     return <View key={group}>
+       <Text style={{fontSize:15,fontWeight:'900',color:C.navy,marginVertical:12}}>{group==='required'?'Assortiment obligatoire (DNO)':'Assortiment picking (DNP)'} · {list.length}</Text>
+       {list.map(p=><ProductLine key={p.mission_product_id} product={p} reading={byId[p.mission_product_id]} editable={editable} onSave={onSave} positions={positions}/>)}
+     </View>;
+   })}
+ </View>;
+}
+function CommentStep({value,onChange,editable}){
+ return <View>
+   <Text style={S.eyebrow}>BILAN DE VISITE</Text>
+   <Text style={{fontSize:24,color:C.navy,fontWeight:'900',marginTop:8,marginBottom:9}}>Commentaire général</Text>
+   <Text style={[S.muted,{marginBottom:16}]}>Note les informations utiles au suivi du magasin : engagement du responsable, rupture, prochain passage ou point de vigilance.</Text>
+   <TextInput editable={editable} multiline maxLength={2000} style={[S.input,{minHeight:170,padding:15,paddingTop:15,textAlignVertical:'top',fontSize:15}]} placeholder="Mon commentaire de visite…" placeholderTextColor="#97A7B8" value={value||''} onChangeText={onChange}/>
+   <Text style={{fontSize:11,color:C.muted,textAlign:'right',marginTop:9}}>{(value||'').length} / 2000 caractères · facultatif</Text>
+ </View>;
+}
+
+
+// FILE: src/LegacyVisit.js
+
+
 
 
 
@@ -403,6 +574,10 @@ function VisitScreen({visitId,api,onBack,onFinished}){
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
   const [action,setAction]=useState('');
+  const [readings,setReadings]=useState([]);
+  const [productError,setProductError]=useState('');
+  const [comment,setComment]=useState('');
+  useEffect(()=>setComment(data?.visit?.final_comment||''),[visitId,data?.visit?.final_comment]);
   const load=useCallback(async()=>{
     try{
       setError('');
@@ -411,9 +586,33 @@ function VisitScreen({visitId,api,onBack,onFinished}){
     }catch(e){setError(fmtError(e))}
   },[api,visitId]);
   useEffect(()=>{load()},[load]);
+  useEffect(()=>{
+    let active=true;
+    api('GET','/api/visits/'+encodeURIComponent(visitId)+'/products').then(r=>{
+      if(active){setReadings(r.readings||[]);setProductError('')}
+    }).catch(e=>{if(active)setProductError('Références : '+fmtError(e))});
+    return()=>{active=false};
+  },[api,visitId]);
   const editable=data?.visit?.status==='in_progress';
   const questions=data?.questions||[];
   const responses=Object.fromEntries((data?.responses||[]).map(r=>[r.question_id,r.value]));
+  const products=data?.visit?.context_snapshot?.assortment?.products||[];
+  const positions=data?.visit?.context_snapshot?.questionnaire?.config?.rules?.product_positions||[];
+  const coverage=productCoverage(products,readings);
+  async function saveReading(productId,payload){
+    if(!editable)throw Error('Visite en lecture seule.');
+    try{
+      const result=await api('PUT','/api/visits/'+visitId+'/products',{mission_product_id:productId,...payload});
+      setReadings(prev=>[...prev.filter(r=>r.mission_product_id!==productId),result.reading]);
+      setProductError('');
+    }catch(e){setProductError(fmtError(e));throw e}
+  }
+  async function saveComment(){
+    if(!editable)return;
+    try{await api('PUT','/api/visits/'+visitId+'/comment',{comment});
+      setData(prev=>({...prev,visit:{...prev.visit,final_comment:comment}}));setError('');
+    }catch(e){setError('Commentaire : '+fmtError(e));throw e}
+  }
   const missing=questions.filter(q=>q.required&&!q.conditions&&(responses[q.id]==null||responses[q.id]===''));
 
   async function saveAnswer(qid,value){
@@ -433,6 +632,7 @@ function VisitScreen({visitId,api,onBack,onFinished}){
   }
   function finish(){
     if(missing.length){setError('Réponses obligatoires manquantes : '+missing.slice(0,3).map(q=>q.label).join(', '));return;}
+    if(coverage.total.remaining>0){setError('Présence ou absence à indiquer pour '+coverage.total.remaining+' référence(s).');return;}
     Alert.alert('Terminer la visite','Une fois finalisée, la visite ne peut plus être modifiée.',[
       {text:'Annuler',style:'cancel'},
       {text:'Terminer',onPress:async()=>{
@@ -446,11 +646,26 @@ function VisitScreen({visitId,api,onBack,onFinished}){
     ]);
   }
   if(!data)return <View style={{flex:1,justifyContent:'center',padding:24}}>{error?<Empty title="Relevé indisponible" subtitle={error}/>:<Loader text="Chargement du relevé…"/>}</View>;
-  return <QuestionFlow key={visitId} questions={questions} responses={responses}
+  const extraSteps=[
+    {id:'products',title:'Références produits',canNext:!editable||coverage.total.remaining===0&&!productError,
+      missingMessage:productError||coverage.total.remaining+' référence(s) à déclarer présentes ou absentes.',
+      content:<ProductsStep products={products} readings={readings} editable={editable} onSave={saveReading} positions={positions}/>},
+    {id:'comment',title:'Commentaire de visite',onNext:editable?saveComment:undefined,onExit:editable?saveComment:undefined,
+      content:<CommentStep value={comment} onChange={setComment} editable={editable}/>}
+  ];
+  return <QuestionFlow key={visitId} questions={questions} responses={responses} extraSteps={extraSteps}
     editable={editable} onSave={saveAnswer} onExit={onBack}
     storeName={data.visit?.store_name||data.store?.name||'Ma visite'} error={error}
     saveLabel={editable?'Enregistrement au CRM à chaque étape':'Visite terminée · lecture seule'}
     summary={<>
+      <View style={S.card}><Text style={S.eyebrow}>DISTRIBUTION DU MAGASIN</Text>
+        <Text style={{color:C.navy,fontWeight:'800',marginTop:7}}>DNO : {coverage.required.percent==null?'—':coverage.required.percent+' %'} · DNP : {coverage.picking.percent==null?'—':coverage.picking.percent+' %'}</Text>
+        <Text style={[S.muted,{marginTop:7}]}>{coverage.total.present} présentes · {coverage.total.absent} absentes · {coverage.total.remaining} à renseigner</Text>
+        <Text style={[S.muted,{marginTop:8}]}>Commentaire : {comment||'Aucun commentaire'}</Text>
+      </View>
+      {data.photos?.length?<View style={S.card}><Text style={S.eyebrow}>PHOTOS DU RELEVÉ</Text>
+        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:9}}>{data.photos.map(p=><Image key={p.id} source={{uri:p.url}} style={{height:76,width:76,borderRadius:9,backgroundColor:C.border}}/>)}</View>
+      </View>:null}
       <View style={[S.row,{marginBottom:15}]}>
         <Badge text={editable?'En cours':'Terminée'} tone={editable?'amber':'green'}/>
         <Text style={[S.muted,{marginLeft:11,flex:1}]}>Sauvegarde en ligne</Text>
