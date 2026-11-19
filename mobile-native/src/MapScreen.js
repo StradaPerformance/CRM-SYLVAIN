@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {Alert,Linking,Pressable,ScrollView,Text,View} from 'react-native';
 import {WebView} from 'react-native-webview';
 import * as Location from 'expo-location';
-import {Badge,Button,C,Empty,Loader,S,Section,time} from './design';
+import {Badge,Button,C,Empty,Loader,S,Section,time,todayParis} from './design';
 import {DaySelector} from './Screens';
 
 // No tracking in the background, no storage or transmission of device location to the CRM.
@@ -44,7 +44,7 @@ function mapHtml(points,user){
   ].join('');
 }
 
-export function MapScreen({day,setDay,events,loading,onEvent}){
+export function MapScreen({day,setDay,events,loading,onEvent,onStartVisit,onResumeVisit}){
   const [position,setPosition]=useState(null);
   const [locating,setLocating]=useState(false);
   const [selectedId,setSelectedId]=useState(null);
@@ -94,7 +94,12 @@ export function MapScreen({day,setDay,events,loading,onEvent}){
             <Pressable onPress={()=>openRoute('waze',selected)} style={[S.buttonLight,{flex:1}]}><Text style={S.buttonLightText}>Waze</Text></Pressable>
             <Pressable onPress={()=>openRoute('google',selected)} style={[S.buttonLight,{flex:1}]}><Text style={S.buttonLightText}>Google Maps</Text></Pressable>
           </View>
-          <Button label="Ouvrir la fiche de visite" style={{marginTop:10}} onPress={()=>onEvent(selected)}/>
+          <Button label={day!==todayParis()?'Voir la fiche':selected.visit_status==='completed'?'Consulter la visite':selected.visit_status==='in_progress'?'Reprendre la visite':'Démarrer la visite'} style={{marginTop:10}} onPress={()=>{
+            if(day!==todayParis()||selected.visit_status==='completed'){onEvent(selected);return;}
+            if(selected.visit_id){onResumeVisit?.(selected.visit_id,selected);return;}
+            onStartVisit?.(selected.store_id,selected);
+          }}/>
+          <Pressable onPress={()=>onEvent(selected)} style={{alignSelf:'center',padding:9,marginTop:3}}><Text style={{fontSize:12,color:C.blue,fontWeight:'700'}}>Voir le détail</Text></Pressable>
         </View>:null}
         <View style={{paddingHorizontal:20}}>
           <Section eyebrow="PAR ORDRE DE PASSAGE" title="Points programmés"/>
