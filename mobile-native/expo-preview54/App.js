@@ -5,6 +5,43 @@ import { Alert, ActivityIndicator, Linking, Modal, Pressable, ScrollView, Text, 
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
+import * as Location from 'expo-location';
+// Navigation icons drawn with React Native Views only — no native icon modules.
+function TabIcon({name,color,size=22,strokeWidth=2}) {
+  const w=Math.max(1.6,strokeWidth);
+  const base={position:'absolute',borderColor:color,borderWidth:w};
+  const dash=(style,key)=><View key={key} style={[{position:'absolute',backgroundColor:color,borderRadius:4},style]}/>;
+  return <View pointerEvents="none" style={{width:size,height:size,position:'relative'}}>
+    {name==='today' && <>
+      <View style={[base,{left:2,top:4,width:18,height:17,borderRadius:3}]}/>
+      {dash({left:2,top:9,width:18,height:w},'cal-horizontal')}
+      {dash({left:6,top:1,width:w,height:6},'cal-top-a')}
+      {dash({left:15,top:1,width:w,height:6},'cal-top-b')}
+    </>}
+    {name==='today' && <>
+      {dash({left:6.5,top:14.5,width:5.3,height:w,transform:[{rotate:'43deg'}]},'check-a')}
+      {dash({left:9.3,top:13.4,width:9.1,height:w,transform:[{rotate:'-43deg'}]},'check-b')}
+    </>}
+    {name==='agenda' && <>
+      <View style={[base,{left:1,top:4,width:20,height:16,borderRadius:2}]}/>
+      {dash({left:7,top:4,width:w,height:16},'fold-a')}
+      {dash({left:14,top:4,width:w,height:16},'fold-b')}
+      <View style={{position:'absolute',left:9,top:8,width:6,height:6,borderWidth:w,borderColor:color,borderRadius:3,backgroundColor:'white'}}/>
+    </>}
+    {name==='park' && <>
+      <View style={[base,{left:3,top:9,width:16,height:12,borderRadius:2}]}/>
+      <View style={[base,{left:1,top:4,width:20,height:8,borderRadius:2,backgroundColor:'white'}]}/>
+      {dash({left:7,top:6,width:w,height:5},'awning-a')}
+      {dash({left:14,top:6,width:w,height:5},'awning-b')}
+      <View style={[base,{left:8.5,top:13,width:6,height:8,borderBottomWidth:0,borderTopLeftRadius:1,borderTopRightRadius:1}]}/>
+    </>}
+    {name==='goals' && <>
+      <View style={[base,{left:1,top:1,width:20,height:20,borderRadius:10}]}/>
+      <View style={[base,{left:6,top:6,width:10,height:10,borderRadius:5}]}/>
+      <View style={{position:'absolute',left:10,top:10,width:2,height:2,borderRadius:1,backgroundColor:color}}/>
+    </>}
+  </View>;
+}
 
 // FILE: src/design.js
 
@@ -103,7 +140,7 @@ function EventCard({event,onPress}){
   </View>;
 }
 
-function TodayScreen({day,setDay,events,loading,onEvent,refresh}){
+function TodayScreen({day,setDay,events,loading,onEvent,refresh,onStartVisit,onResumeVisit}){
   const visits=events.filter(e=>!!e.store_id);
   const done=visits.filter(e=>e.visit_status==='completed').length;
   return <ScrollView contentContainerStyle={S.content} keyboardShouldPersistTaps="handled">
@@ -113,6 +150,7 @@ function TodayScreen({day,setDay,events,loading,onEvent,refresh}){
         <Text style={{fontSize:25,color:C.navy,fontWeight:'900'}}>{loading?'–':count}</Text><Text style={{fontSize:11,color:C.muted,marginTop:4}}>{label}</Text>
       </View>)}
     </View>
+    {!loading?<QuickStartCard day={day} events={events} onOpen={onEvent} onStart={onStartVisit} onResume={onResumeVisit}/>:null}
     <Section eyebrow="MON PROGRAMME" title="Fil de la journée" right={<Pressable accessibilityLabel="Actualiser" onPress={refresh}><Text style={{fontSize:26,color:C.blue}}>↻</Text></Pressable>}/>
     {loading?<Loader text="Lecture de l’agenda…"/>:events.length?events.map(ev=><EventCard key={ev.id} event={ev} onPress={()=>onEvent(ev)}/>):<Empty title="Aucune visite programmée" subtitle="Les créneaux du planning du CRM apparaîtront ici. Tu peux naviguer entre les journées."/>}
   </ScrollView>;
@@ -423,7 +461,193 @@ function useCrmBridge() {
 
 
 
-const TABS=[{id:'today',icon:'▣',label:'Ma journée'},{id:'agenda',icon:'▦',label:'Agenda'},{id:'park',icon:'▤',label:'Mon parc'},{id:'goals',icon:'◎',label:'Objectifs'}];
+
+// === Carte des visites ===
+
+
+
+
+
+
+// No tracking in the background, no storage or transmission of device location to the CRM.
+function validCoordinates(s){
+  const lat=Number(s?.latitude),lon=Number(s?.longitude);
+  return s?.latitude!=null&&s?.longitude!=null&&Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;
+}
+function routeUrl(provider,event){
+  const coords=validCoordinates(event);
+  const address=[event.address,[event.postal_code,event.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const dest=coords?Number(event.latitude)+','+Number(event.longitude):address;
+  if(!dest)return null;
+  if(provider==='waze')return 'https://waze.com/ul?'+(coords?'ll=':'q=')+encodeURIComponent(dest)+'&navigate=yes';
+  if(provider==='apple')return 'https://maps.apple.com/?daddr='+encodeURIComponent(dest)+'&dirflg=d';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(dest)+'&travelmode=driving';
+}
+function openRoute(provider,event){
+  const url=routeUrl(provider,event);
+  if(!url){Alert.alert('Itinéraire indisponible','Aucune adresse ou coordonnée pour ce point de vente.');return;}
+  Linking.openURL(url).catch(()=>Alert.alert('Impossible d’ouvrir la navigation','Vérifie que ton téléphone peut ouvrir des liens.'));
+}
+function mapHtml(points,user){
+  const safePoints=points.map((e,i)=>({i,lat:Number(e.latitude),lon:Number(e.longitude),name:String(e.store_name||'Magasin'),number:i+1}));
+  const p=JSON.stringify({points:safePoints,user}).replace(/</g,'\\u003c');
+  return [
+    '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">',
+    '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">',
+    '<style>html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eef3f8} .leaflet-container{font-family:-apple-system,system-ui,sans-serif} .number{display:grid;place-items:center;width:29px;height:29px;background:#2875e7;color:#fff;border:2px solid white;border-radius:50%;font-weight:800;box-shadow:0 2px 8px #1b355444}.me{width:20px;height:20px;background:#16a1e1;border:4px solid white;border-radius:50%;box-shadow:0 0 0 7px #16a1e133} .leaflet-control-attribution{font-size:9px!important}</style>',
+    '</head><body><div id="map"></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>',
+    '(function(){var d=',p,';var m=L.map("map",{zoomControl:true});L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(m);',
+    'var bounds=[];d.points.forEach(function(x){var icon=L.divIcon({className:"",html:"<div class=number>"+x.number+"</div>",iconSize:[29,29],iconAnchor:[15,15]});',
+    'L.marker([x.lat,x.lon],{icon:icon}).addTo(m).bindTooltip(x.name).on("click",function(){if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:"select",index:x.i}))});',
+    'bounds.push([x.lat,x.lon]);});',
+    'if(d.user){var me=L.divIcon({className:"",html:"<div class=me></div>",iconSize:[20,20]});L.marker([d.user.latitude,d.user.longitude],{icon:me}).addTo(m).bindTooltip("Ma position");',
+    'bounds.push([d.user.latitude,d.user.longitude]);}',
+    'if(bounds.length===1)m.setView(bounds[0],13);else if(bounds.length)m.fitBounds(bounds,{padding:[35,35],maxZoom:13});else m.setView([46.5,2.25],5);',
+    'setTimeout(function(){m.invalidateSize()},400);})();',
+    '</script></body></html>'
+  ].join('');
+}
+
+function MapScreen({day,setDay,events,loading,onEvent,onStartVisit,onResumeVisit}){
+  const [position,setPosition]=useState(null);
+  const [locating,setLocating]=useState(false);
+  const [selectedId,setSelectedId]=useState(null);
+  const items=useMemo(()=>events.filter(e=>!!e.store_id),[events]);
+  const points=useMemo(()=>items.filter(validCoordinates),[items]);
+  const missing=items.length-points.length;
+  const selected=items.find(e=>e.id===selectedId)||points[0]||items[0]||null;
+  useEffect(()=>setSelectedId(null),[day]);
+  async function locate(){
+    if(locating)return;
+    setLocating(true);
+    try{
+      const permission=await Location.requestForegroundPermissionsAsync();
+      if(permission.status!=='granted'){Alert.alert('Position non autorisée','Tu peux quand même voir les magasins et lancer un itinéraire. Active la localisation dans les réglages de ton iPhone pour afficher ta position.');return;}
+      const point=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});
+      setPosition({latitude:point.coords.latitude,longitude:point.coords.longitude});
+    }catch(e){Alert.alert('Position indisponible','Impossible d’obtenir ta position pour le moment.');}
+    finally{setLocating(false);}
+  }
+  return <ScrollView style={{flex:1}} contentContainerStyle={{paddingBottom:28}} keyboardShouldPersistTaps="handled">
+    <View style={{paddingHorizontal:20}}>
+      <Section eyebrow="TOURNÉE DU JOUR" title="Carte des visites"/>
+      <DaySelector day={day} setDay={setDay}/>
+      <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:11}}>
+        <Text style={[S.muted,{flex:1}]}>{loading?'Chargement des points…':points.length+' magasin(s) sur la carte'+(missing?' · '+missing+' sans coordonnées':'')}</Text>
+        <Pressable accessibilityRole="button" onPress={locate} disabled={locating} style={{borderRadius:11,paddingVertical:9,paddingHorizontal:12,backgroundColor:C.blueSoft}}>
+          <Text style={{color:C.blue,fontSize:12,fontWeight:'800'}}>{locating?'Localisation…':position?'↗ Actualiser ma position':'◎ Ma position'}</Text>
+        </Pressable>
+      </View>
+    </View>
+    {loading?<Loader text="Chargement de la tournée…"/>:items.length===0?
+      <View style={{paddingHorizontal:20}}><Empty title="Aucun point de visite" subtitle="Sélectionne une autre journée : seuls les magasins planifiés apparaissent sur cette carte."/></View>:
+      <>
+        <View style={{height:345,marginHorizontal:16,borderRadius:18,overflow:'hidden',borderWidth:1,borderColor:C.border,backgroundColor:'#E7EEF5'}}>
+          <WebView key={day+'|'+points.map(e=>e.id).join(',')+'|'+(position?position.latitude+','+position.longitude:'')} source={{html:mapHtml(points,position)}}
+            javaScriptEnabled domStorageEnabled={false} sharedCookiesEnabled={false} thirdPartyCookiesEnabled={false} incognito scrollEnabled={false} nestedScrollEnabled originWhitelist={['https://*','about:blank']}
+            onMessage={evt=>{try{const msg=JSON.parse(evt.nativeEvent.data);if(msg.type==='select'&&points[msg.index])setSelectedId(points[msg.index].id);}catch{}}}
+            onError={()=>{}} style={{flex:1,backgroundColor:'#E7EEF5'}}/>
+        </View>
+        <Text style={{fontSize:10,color:C.muted,marginTop:7,marginHorizontal:20}}>Fond OpenStreetMap : connexion requise. Les visites planifiées restent listées ci-dessous.</Text>
+        {selected?<View style={[S.card,{marginHorizontal:20,marginTop:16,marginBottom:8}]}>
+          <Badge text={selected.visit_status==='completed'?'Visite terminée':selected.visit_status==='in_progress'?'En cours':'Planifiée'} tone={selected.visit_status==='completed'?'green':selected.visit_status==='in_progress'?'amber':'blue'}/>
+          <Text style={{fontSize:17,fontWeight:'900',color:C.text,marginTop:10}}>{selected.store_name||'Magasin'}</Text>
+          <Text style={[S.muted,{marginTop:4}]}>{[selected.all_day?'Journée':time(selected.start_minute),selected.address,[selected.postal_code,selected.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</Text>
+          <View style={{flexDirection:'row',gap:8,marginTop:14}}>
+            <Pressable onPress={()=>openRoute('apple',selected)} style={[S.buttonLight,{flex:1}]}><Text style={S.buttonLightText}>Plans</Text></Pressable>
+            <Pressable onPress={()=>openRoute('waze',selected)} style={[S.buttonLight,{flex:1}]}><Text style={S.buttonLightText}>Waze</Text></Pressable>
+            <Pressable onPress={()=>openRoute('google',selected)} style={[S.buttonLight,{flex:1}]}><Text style={S.buttonLightText}>Google Maps</Text></Pressable>
+          </View>
+          <Button label={day!==todayParis()?'Voir la fiche':selected.visit_status==='completed'?'Consulter la visite':selected.visit_status==='in_progress'?'Reprendre la visite':'Démarrer la visite'} style={{marginTop:10}} onPress={()=>{
+            if(day!==todayParis()||selected.visit_status==='completed'){onEvent(selected);return;}
+            if(selected.visit_id){onResumeVisit?.(selected.visit_id,selected);return;}
+            onStartVisit?.(selected.store_id,selected);
+          }}/>
+          <Pressable onPress={()=>onEvent(selected)} style={{alignSelf:'center',padding:9,marginTop:3}}><Text style={{fontSize:12,color:C.blue,fontWeight:'700'}}>Voir le détail</Text></Pressable>
+        </View>:null}
+        <View style={{paddingHorizontal:20}}>
+          <Section eyebrow="PAR ORDRE DE PASSAGE" title="Points programmés"/>
+          {items.map((e,i)=><Pressable key={e.id} onPress={()=>setSelectedId(e.id)} style={[S.card,{marginBottom:8,borderColor:selected?.id===e.id?C.blue:C.border,flexDirection:'row',alignItems:'center',gap:12}]}>
+            <View style={{height:34,width:34,borderRadius:10,backgroundColor:C.blueSoft,justifyContent:'center',alignItems:'center'}}><Text style={{color:C.blue,fontWeight:'900'}}>{i+1}</Text></View>
+            <View style={{flex:1}}><Text style={{fontSize:14,fontWeight:'800',color:C.text}} numberOfLines={2}>{e.store_name||e.kind||'Visite'}</Text><Text style={[S.muted,{marginTop:3}]}>{[time(e.start_minute),e.city,validCoordinates(e)?null:'Position manquante'].filter(Boolean).join(' · ')}</Text></View>
+            <Text style={{color:C.muted,fontSize:21}}>›</Text>
+          </Pressable>)}
+        </View>
+      </>}
+  </ScrollView>;
+}
+// === Accès rapide à la tournée ===
+
+
+
+function navigationLink(provider,event){
+  const lat=Number(event?.latitude),lon=Number(event?.longitude);
+  const located=event?.latitude!=null&&event?.longitude!=null&&Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180;
+  const address=[event?.address,[event?.postal_code,event?.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const destination=located?lat+','+lon:address;
+  if(!destination)return null;
+  if(provider==='waze')return 'https://waze.com/ul?'+(located?'ll=':'q=')+encodeURIComponent(destination)+'&navigate=yes';
+  if(provider==='apple')return 'https://maps.apple.com/?daddr='+encodeURIComponent(destination)+'&dirflg=d';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination)+'&travelmode=driving';
+}
+function navigateTo(provider,event){
+  const url=navigationLink(provider,event);
+  if(!url){Alert.alert('Itinéraire indisponible','Cette visite ne comporte ni position ni adresse utilisable.');return;}
+  Linking.openURL(url).catch(()=>Alert.alert('Navigation indisponible','Impossible d’ouvrir l’application de navigation.'));
+}
+function chooseNextVisit(events,day){
+  const visits=(events||[]).filter(e=>e?.store_id && e.visit_status!=='completed');
+  if(!visits.length)return null;
+  const active=visits.find(e=>e.visit_status==='in_progress');
+  if(active)return active;
+  if(day===todayParis()){
+    const d=new Date();
+    const paris=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',hour12:false}).format(d);
+    const [h,m]=paris.split(':').map(Number);
+    const minutes=h*60+m;
+    return visits.find(e=>Number(e.start_minute||0)>=minutes-45)||visits[visits.length-1];
+  }
+  return visits[0];
+}
+function QuickStartCard({day,events,onOpen,onStart,onResume}){
+  const next=useMemo(()=>chooseNextVisit(events,day),[events,day]);
+  if(!next)return null;
+  const today=day===todayParis();
+  const ongoing=next.visit_status==='in_progress';
+  const label=!today?'Voir la visite':ongoing?'Reprendre la visite':'Démarrer la visite';
+  const handle=()=>{
+    if(!today){onOpen?.(next);return;}
+    if(next.visit_id){onResume?.(next.visit_id,next);return;}
+    onStart?.(next.store_id,next);
+  };
+  return <View style={{backgroundColor:C.blueSoft,borderRadius:18,borderWidth:1,borderColor:'#D3E2FA',padding:17,marginTop:13,marginBottom:9}}>
+    <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
+      <Text style={{fontSize:10,color:C.blue,letterSpacing:1.15,fontWeight:'900'}}>{today?'MON PROCHAIN RENDEZ-VOUS':'POINT DE VISITE'}</Text>
+      <Badge text={ongoing?'En cours':'Planifiée'} tone={ongoing?'amber':'blue'}/>
+    </View>
+    <Text style={{fontSize:20,fontWeight:'900',color:C.navy,marginTop:10}} numberOfLines={2}>{next.store_name||'Magasin'}</Text>
+    <Text style={{color:C.muted,fontSize:12,marginTop:5}} numberOfLines={2}>{[next.all_day?'Journée':time(next.start_minute),next.city].filter(Boolean).join(' · ')}</Text>
+    <Pressable accessibilityRole="button" onPress={handle} style={{minHeight:47,borderRadius:12,backgroundColor:C.blue,justifyContent:'center',alignItems:'center',marginTop:14}}>
+      <Text style={{fontSize:14,color:'white',fontWeight:'900'}}>{label}  →</Text>
+    </Pressable>
+    <View style={{flexDirection:'row',gap:9,marginTop:9}}>
+      <Pressable accessibilityRole="button" onPress={()=>navigateTo('apple',next)} style={[S.buttonLight,{flex:1,minHeight:41}]}>
+        <Text style={[S.buttonLightText,{fontSize:12}]}>Itinéraire Plans</Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={()=>navigateTo('waze',next)} style={[S.buttonLight,{flex:1,minHeight:41}]}>
+        <Text style={[S.buttonLightText,{fontSize:12}]}>Waze</Text>
+      </Pressable>
+    </View>
+  </View>;
+}
+
+// === Navigation ===
+const TABS=[
+  {id:'today',label:'Ma journée'},
+  {id:'agenda',label:'Carte'},
+  {id:'park',label:'Mon parc'},
+  {id:'goals',label:'Objectifs'},
+];
 
 function CrmApp(){
   const bridge=useCrmBridge();
@@ -518,10 +742,10 @@ function CrmApp(){
     if(focus?.type==='event')return <EventDetail event={focus.value} busy={busy} onBack={()=>setFocus(null)} onStart={startVisit} onOpenVisit={setVisitId}/>;
     if(focus?.type==='store')return <StoreDetail store={focus.value} busy={busy} onBack={()=>setFocus(null)} onStart={startVisit}/>;
     if(!mission)return <View style={S.content}><Empty title="Aucune mission accessible" subtitle="Ton compte doit être invité et affecté à une mission dans le CRM."/></View>;
-    if(tab==='agenda')return <AgendaScreen day={day} setDay={setDay} events={events} loading={dayLoading} onEvent={event=>setFocus({type:'event',value:event})}/>;
+    if(tab==='agenda')return <MapScreen day={day} setDay={setDay} events={events} loading={dayLoading} onEvent={event=>setFocus({type:'event',value:event})} onStartVisit={id=>startVisit(id)} onResumeVisit={id=>{setFocus(null);setVisitId(id)}}/>;
     if(tab==='park')return <ParkScreen stores={stores} loading={parkLoading} onStore={store=>setFocus({type:'store',value:store})}/>;
     if(tab==='goals')return <GoalsScreen goals={goals||[]} loading={goalsLoading}/>;
-    return <TodayScreen day={day} setDay={setDay} events={events} loading={dayLoading} refresh={refresh} onEvent={event=>setFocus({type:'event',value:event})}/>;
+    return <TodayScreen day={day} setDay={setDay} events={events} loading={dayLoading} refresh={refresh} onEvent={event=>setFocus({type:'event',value:event})} onStartVisit={id=>startVisit(id)} onResumeVisit={id=>{setFocus(null);setVisitId(id)}}/>;
   };
 
   const webview=<WebView
@@ -569,7 +793,9 @@ function CrmApp(){
       </View>
       {!visitId&&!focus?<View style={{flexDirection:'row',backgroundColor:'white',borderTopColor:C.border,borderTopWidth:1,paddingTop:9,paddingHorizontal:5,paddingBottom:5}}>
         {TABS.map(item=><Pressable accessibilityRole="tab" accessibilityState={{selected:tab===item.id}} key={item.id} onPress={()=>navToTab(item.id)} style={{flex:1,alignItems:'center',paddingVertical:5}}>
-          <Text style={{fontSize:22,color:tab===item.id?C.blue:'#8898AF'}}>{item.icon}</Text>
+          <View style={{width:44,height:31,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:tab===item.id?C.blueSoft:'transparent'}}>
+            <TabIcon name={item.id} size={22} strokeWidth={tab===item.id?2.35:1.85} color={tab===item.id?C.blue:'#8898AF'}/>
+          </View>
           <Text style={{fontSize:10,fontWeight:'800',marginTop:4,color:tab===item.id?C.blue:'#8898AF'}}>{item.label}</Text>
         </Pressable>)}
       </View>:null}
