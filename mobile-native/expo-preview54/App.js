@@ -242,7 +242,147 @@ function EventDetail({event,onBack,onStart,onOpenVisit,busy}){
 }
 
 
-// FILE: src/Visit.js
+// FILE: src/QuestionFlow.js
+
+
+
+// Shared between local-first and connected visit flows.
+// One question per screen; every transition persists before moving on.
+const answered=value=>value!==undefined&&value!==null&&!(typeof value==='string'&&value.trim()==='');
+function optionsFor(q){
+  try{
+    const raw=typeof q.options==='string'?JSON.parse(q.options):q.options;
+    return Array.isArray(raw)?raw:[];
+  }catch{return []}
+}
+function isNumeric(q){return ['number','integer','decimal','numeric'].includes(String(q.type||'').toLowerCase())}
+function isBoolean(q){return ['yes_no','boolean','bool'].includes(String(q.type||'').toLowerCase())}
+function normalizeDraft(q,draft){
+  if(!answered(draft))return null;
+  if(isNumeric(q)){
+    const raw=String(draft).replace(',','.').trim();
+    const n=Number(raw);
+    if(!Number.isFinite(n))throw Error('Saisis un nombre valide pour continuer.');
+    return n;
+  }
+  return draft;
+}
+function sameValue(a,b){return a===b||(a!=null&&b!=null&&String(a)===String(b))}
+function labelValue(value){
+  if(!answered(value))return 'Non renseignée';
+  if(value===true)return 'Oui';
+  if(value===false)return 'Non';
+  if(typeof value==='object')return 'Renseignée';
+  return String(value);
+}
+function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true}){
+  const [step,setStep]=useState(0);
+  const [draft,setDraft]=useState(null);
+  const [busy,setBusy]=useState(false);
+  const [localError,setLocalError]=useState('');
+  const lock=useRef(false);
+  const total=questions.length;
+  const summaryStep=step>=total;
+  const question=summaryStep?null:questions[step];
+  const saved=question?responses[question.id]:undefined;
+  const count=questions.filter(q=>answered(responses[q.id])).length;
+  const position=total===0?100:Math.round((Math.min(step,total)/total)*100);
+  const missing=questions.filter(q=>q.required&&!q.conditions&&!answered(responses[q.id]));
+  useEffect(()=>{setDraft(saved==null?'':saved);setLocalError('')},[step,question?.id]);
+  const selected=v=>sameValue(draft,v);
+  async function move(next,allowEmptyRequired=false){
+    if(lock.current||!canContinue)return;
+    if(!question){setStep(Math.max(0,Math.min(total,next)));return;}
+    let val;
+    try{val=normalizeDraft(question,draft);}
+    catch(e){setLocalError(e.message);return;}
+    if(editable&&!allowEmptyRequired&&question.required&&!question.conditions&&!answered(val)){
+      setLocalError('Cette réponse est obligatoire pour continuer.');
+      return;
+    }
+    lock.current=true;setBusy(true);setLocalError('');
+    try{
+      if(editable&&!sameValue(saved,val)){
+        await onSave(question.id,val);
+      }
+      setStep(Math.max(0,Math.min(total,next)));
+    }catch(e){
+      setLocalError('Réponse non enregistrée : '+String(e?.message||'Réessaie.'));
+    }finally{lock.current=false;setBusy(false)}
+  }
+  const goExit=()=>{
+    if(!editable||!question||sameValue(saved,draft)){onExit?.();return;}
+    Alert.alert('Réponse en cours','Enregistrer cette réponse avant de quitter le relevé ?',[
+      {text:'Rester',style:'cancel'},
+      {text:'Quitter sans enregistrer',style:'destructive',onPress:onExit},
+      {text:'Enregistrer',onPress:async()=>{try{await onSave(question.id,normalizeDraft(question,draft));onExit?.()}catch(e){setLocalError('Impossible de sauvegarder : '+e.message)}}}
+    ]);
+  };
+  return <View style={{flex:1,backgroundColor:C.bg}}>
+    <View style={{paddingHorizontal:20,paddingTop:17,paddingBottom:13,backgroundColor:'white',borderBottomColor:C.border,borderBottomWidth:1}}>
+      <Pressable accessibilityRole="button" onPress={goExit} style={{alignSelf:'flex-start',paddingVertical:6,paddingRight:12,marginBottom:7}}>
+        <Text style={{color:C.blue,fontWeight:'800',fontSize:13}}>‹ Quitter le relevé</Text>
+      </Pressable>
+      <Text numberOfLines={1} style={{color:C.navy,fontWeight:'900',fontSize:20}}>{storeName||'Ma visite'}</Text>
+      <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:14}}>
+        <Text style={{color:C.blue,fontSize:12,fontWeight:'900'}}>{summaryStep?'Récapitulatif':`Question ${step+1} / ${total}`}</Text>
+        <Text style={{fontSize:12,color:C.muted}}>{count} réponse{count>1?'s':''} renseignée{count>1?'s':''} · {position}%</Text>
+      </View>
+      <View accessibilityRole="progressbar" accessibilityValue={{min:0,max:100,now:position}} style={{height:7,borderRadius:10,backgroundColor:'#E6ECF5',overflow:'hidden',marginTop:9}}>
+        <View style={{width:position+'%',height:'100%',backgroundColor:C.blue,borderRadius:10}}/>
+      </View>
+      <Text style={{fontSize:11,color:C.muted,marginTop:8}}>{saveLabel||'Sauvegarde à chaque étape'}</Text>
+    </View>
+    <ScrollView key={summaryStep?'summary':question?.id||step} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:24,paddingBottom:28}} keyboardShouldPersistTaps="handled">
+      {!!(localError||error)&&<Text style={{color:C.danger,backgroundColor:C.redSoft,padding:12,borderRadius:10,marginBottom:16}}>{localError||error}</Text>}
+      {summaryStep?<>
+        <Text style={S.eyebrow}>FIN DU QUESTIONNAIRE</Text>
+        <Text style={{fontWeight:'900',fontSize:25,color:C.navy,marginBottom:7}}>Récapitulatif de visite</Text>
+        <Text style={[S.muted,{marginBottom:16}]}>Vérifie les réponses, puis finalise la visite en bas de page.</Text>
+        {questions.length?<View style={S.card}>{questions.map((q,i)=><Pressable key={q.id} onPress={()=>setStep(i)} style={{borderBottomColor:C.border,borderBottomWidth:i<questions.length-1?1:0,paddingVertical:12}}>
+          <Text numberOfLines={2} style={{fontWeight:'700',color:C.text,fontSize:13}}>{i+1}. {q.label}{q.required?' *':''}</Text>
+          <Text numberOfLines={1} style={{fontSize:12,marginTop:4,color:answered(responses[q.id])?C.green:C.muted}}>{labelValue(responses[q.id])}</Text>
+        </Pressable>)}</View>:null}
+        {missing.length>0&&<Pressable onPress={()=>setStep(questions.findIndex(q=>q.id===missing[0].id))} style={[S.card,{backgroundColor:C.redSoft,borderColor:'#F2C9CD'}]}>
+          <Text style={{fontWeight:'800',color:C.danger}}>{missing.length} question(s) obligatoire(s) sans réponse</Text>
+          <Text style={{fontSize:12,color:C.danger,marginTop:5}}>Appuyer pour retourner à la première.</Text>
+        </Pressable>}
+        {summary}
+      </>:question?<>
+        <Text style={S.eyebrow}>{question.required?'RÉPONSE OBLIGATOIRE':'QUESTION FACULTATIVE'}</Text>
+        <Text style={{fontWeight:'900',fontSize:25,lineHeight:33,color:C.navy,marginTop:10,marginBottom:23}}>{question.label}</Text>
+        {isBoolean(question)?<View style={{gap:11}}>
+          {[[true,'Oui'],[false,'Non']].map(([v,label])=><Pressable key={label} disabled={!editable||busy} onPress={()=>setDraft(v)} style={{minHeight:73,backgroundColor:selected(v)?C.blueSoft:'white',borderColor:selected(v)?C.blue:C.border,borderWidth:selected(v)?2:1,borderRadius:16,justifyContent:'center',paddingHorizontal:20}}>
+            <Text style={{color:selected(v)?C.blue:C.text,fontWeight:'800',fontSize:19}}>{selected(v)?'✓  ':''}{label}</Text>
+          </Pressable>)}
+        </View>:optionsFor(question).length>0&&['select','single_choice','choice','radio'].includes(String(question.type||'').toLowerCase())?
+          <View style={{gap:11}}>{optionsFor(question).map((option,i)=>{
+            const v=typeof option==='object'?(option.value??option.label??String(i)):option;
+            const label=typeof option==='object'?String(option.label??option.value??'Option'):String(option);
+            return <Pressable key={i} disabled={!editable||busy} onPress={()=>setDraft(v)} style={{minHeight:65,backgroundColor:selected(v)?C.blueSoft:'white',borderColor:selected(v)?C.blue:C.border,borderWidth:selected(v)?2:1,borderRadius:15,justifyContent:'center',paddingHorizontal:17}}>
+              <Text style={{fontSize:16,fontWeight:selected(v)?'800':'600',color:selected(v)?C.blue:C.text}}>{selected(v)?'✓  ':''}{label}</Text>
+            </Pressable>;
+          })}</View>:
+          <TextInput editable={editable&&!busy} style={[S.input,{fontSize:18,minHeight:isNumeric(question)?65:132,textAlignVertical:'top',paddingTop:19}]} multiline={!isNumeric(question)} keyboardType={isNumeric(question)?'decimal-pad':'default'} value={draft==null?'':String(draft)} onChangeText={setDraft} placeholder="Saisir la réponse…" placeholderTextColor="#9EABBC" returnKeyType={isNumeric(question)?'done':'default'}/>
+        }
+      </>:<Text style={S.muted}>Aucune question disponible.</Text>}
+    </ScrollView>
+    <View style={{flexDirection:'row',gap:11,paddingHorizontal:20,paddingVertical:12,borderTopWidth:1,borderColor:C.border,backgroundColor:'white'}}>
+      <Pressable accessibilityRole="button" disabled={busy||step===0} onPress={()=>move(step-1,true)} style={{minHeight:49,flex:1,borderColor:C.border,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center',opacity:step===0?0.4:1}}>
+        <Text style={{color:C.navy,fontWeight:'800'}}>Précédent</Text>
+      </Pressable>
+      {!summaryStep?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>move(step+1)} style={{minHeight:49,flex:1.6,backgroundColor:C.blue,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
+        <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':'Suivant →'}</Text>
+      </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):onExit?.()} style={{minHeight:49,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
+        <Text style={{color:C.blue,fontWeight:'900'}}>{missing.length?'Réponses manquantes':'Retour à ma journée'}</Text>
+      </Pressable>}
+    </View>
+  </View>;
+}
+
+
+// FILE: src/Visit.js (online preview)
+
 
 
 
@@ -254,49 +394,12 @@ const fmtError=e=>{
   return msg||'Erreur de synchronisation';
 };
 
-function Question({q,value,editable,onSave,saving}){
-  const [local,setLocal]=useState(value==null?'':String(value));
-  useEffect(()=>setLocal(value==null?'':String(value)),[q.id,value]);
-  const type=String(q.type||'text').toLowerCase();
-  const yesNo=['yes_no','boolean','bool'].includes(type);
-  let options=[];
-  try{const raw=typeof q.options==='string'?JSON.parse(q.options):q.options;options=Array.isArray(raw)?raw:[];}catch(_){}
-  const choice=['select','single_choice','choice','radio'].includes(type)&&options.length>0;
-  const isNumber=['number','integer','decimal','numeric'].includes(type);
-  const selected=v=>value===v||(value!=null&&String(value)===String(v));
-  return <View style={S.card}>
-    <Text style={{fontSize:14,fontWeight:'800',color:C.text,marginBottom:12}}>{q.label}{q.required?' *':''}</Text>
-    {yesNo?<View style={{flexDirection:'row',gap:9}}>
-      {[[true,'Oui'],[false,'Non']].map(([v,label])=><Pressable key={label} disabled={!editable||saving} onPress={()=>onSave(q.id,v)}
-      style={{padding:11,flex:1,borderWidth:1,borderRadius:11,alignItems:'center',borderColor:selected(v)?C.blue:C.border,backgroundColor:selected(v)?C.blueSoft:C.white}}>
-        <Text style={{color:selected(v)?C.blue:C.text,fontWeight:'800'}}>{label}</Text>
-      </Pressable>)}
-    </View>:choice?<View style={{gap:8}}>{options.map((option,index)=>{
-      const v=typeof option==='object'?(option.value??option.label??String(index)):option;
-      const label=typeof option==='object'?String(option.label??option.value??'Option'):String(option);
-      return <Pressable key={String(index)} disabled={!editable||saving} onPress={()=>onSave(q.id,v)} style={{padding:12,borderRadius:11,borderWidth:1,borderColor:selected(v)?C.blue:C.border,backgroundColor:selected(v)?C.blueSoft:C.white}}>
-        <Text style={{color:C.text,fontWeight:selected(v)?'800':'500'}}>{label}</Text>
-      </Pressable>;
-    })}</View>:
-      <TextInput editable={editable&&!saving} style={[S.input,{minHeight:55}]} value={local} keyboardType={isNumber?'decimal-pad':'default'} multiline={!isNumber}
-        placeholder="Saisir une réponse" placeholderTextColor="#A0AABB" onChangeText={setLocal}
-        onEndEditing={()=>{
-          const next=isNumber&&local.trim()!==''?Number(local.replace(',','.')):local;
-          if(local!==(value==null?'':String(value)))onSave(q.id,next);
-        }}/>
-    }
-    {saving&&<Text style={[S.muted,{marginTop:8,color:C.blue}]}>Enregistrement…</Text>}
-  </View>;
-}
-
 function VisitScreen({visitId,api,onBack,onFinished}){
   const [data,setData]=useState(null);
   const [busy,setBusy]=useState(false);
-  const [saving,setSaving]=useState({});
+  const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
   const [action,setAction]=useState('');
-  const [loadTick,setLoadTick]=useState(0);
-
   const load=useCallback(async()=>{
     try{
       setError('');
@@ -304,18 +407,20 @@ function VisitScreen({visitId,api,onBack,onFinished}){
       setData(d);
     }catch(e){setError(fmtError(e))}
   },[api,visitId]);
-  useEffect(()=>{load()},[load,loadTick]);
+  useEffect(()=>{load()},[load]);
   const editable=data?.visit?.status==='in_progress';
+  const questions=data?.questions||[];
   const responses=Object.fromEntries((data?.responses||[]).map(r=>[r.question_id,r.value]));
+  const missing=questions.filter(q=>q.required&&!q.conditions&&(responses[q.id]==null||responses[q.id]===''));
 
   async function saveAnswer(qid,value){
-    if(!editable)return;
-    setSaving(x=>({...x,[qid]:true}));setError('');
+    if(!editable)throw Error('Cette visite ne peut plus être modifiée.');
+    setSaving(true);setError('');
     try{
       const response=await api('PUT','/api/visits/'+visitId+'/responses',{question_id:qid,value});
       setData(prev=>({...prev,responses:[...(prev.responses||[]).filter(r=>r.question_id!==qid),response.response]}));
-    }catch(e){setError('Réponse non enregistrée : '+fmtError(e))}
-    finally{setSaving(x=>({...x,[qid]:false}))}
+    }catch(e){const message=fmtError(e);setError('Réponse non enregistrée : '+message);throw new Error(message)}
+    finally{setSaving(false)}
   }
   async function addAction(){
     if(!action.trim()||!editable)return;
@@ -324,38 +429,45 @@ function VisitScreen({visitId,api,onBack,onFinished}){
     catch(e){setError(fmtError(e))}finally{setBusy(false)}
   }
   function finish(){
+    if(missing.length){setError('Réponses obligatoires manquantes : '+missing.slice(0,3).map(q=>q.label).join(', '));return;}
     Alert.alert('Terminer la visite','Une fois finalisée, la visite ne peut plus être modifiée.',[
       {text:'Annuler',style:'cancel'},
       {text:'Terminer',onPress:async()=>{
         setBusy(true);setError('');
-        try{await api('POST','/api/visits/'+visitId+'/complete',{});await load();Alert.alert('Visite terminée','Le relevé est enregistré dans le CRM.',[{text:'OK',onPress:onFinished}]);}
-        catch(e){setError(fmtError(e))}finally{setBusy(false)}
+        try{
+          await api('POST','/api/visits/'+visitId+'/complete',{});
+          await load();
+          Alert.alert('Visite terminée','Le relevé est enregistré dans le CRM.',[{text:'OK',onPress:onFinished}]);
+        }catch(e){setError(fmtError(e))}finally{setBusy(false)}
       }}
     ]);
   }
-  return <ScrollView contentContainerStyle={[S.content,{paddingBottom:48}]} keyboardShouldPersistTaps="handled">
-    <Pressable onPress={onBack} style={{marginVertical:23}}><Text style={{color:C.blue,fontWeight:'800'}}>‹ Retour à la journée</Text></Pressable>
-    <Text style={S.eyebrow}>RELEVÉ TERRAIN</Text>
-    <Text style={{fontWeight:'900',fontSize:26,color:C.navy,marginBottom:10}}>Ma visite</Text>
-    {!data?<>{error?<Empty title="Relevé indisponible" subtitle={error}/>:<Loader/>}</>:<>
-      <View style={[S.row,{marginBottom:16}]}><Badge text={editable?'En cours':'Terminée'} tone={editable?'amber':'green'}/><Text style={[S.muted,{marginLeft:11}]}>Sauvegarde en ligne</Text></View>
-      {error?<Text style={{color:C.danger,backgroundColor:C.redSoft,padding:13,borderRadius:12,marginBottom:12}}>{error}</Text>:null}
-      <Section eyebrow="QUESTIONNAIRE" title={'Relevé ('+(data.questions?.length||0)+' questions)'}/>
-      {data.questions?.length?data.questions.map(q=><Question key={q.id} q={q} value={responses[q.id]} saving={!!saving[q.id]} onSave={saveAnswer} editable={editable}/>):<Empty title="Aucune question" subtitle="Aucun questionnaire actif pour cette mission."/>}
+  if(!data)return <View style={{flex:1,justifyContent:'center',padding:24}}>{error?<Empty title="Relevé indisponible" subtitle={error}/>:<Loader text="Chargement du relevé…"/>}</View>;
+  return <QuestionFlow key={visitId} questions={questions} responses={responses}
+    editable={editable} onSave={saveAnswer} onExit={onBack}
+    storeName={data.visit?.store_name||data.store?.name||'Ma visite'} error={error}
+    saveLabel={editable?'Enregistrement au CRM à chaque étape':'Visite terminée · lecture seule'}
+    summary={<>
+      <View style={[S.row,{marginBottom:15}]}>
+        <Badge text={editable?'En cours':'Terminée'} tone={editable?'amber':'green'}/>
+        <Text style={[S.muted,{marginLeft:11,flex:1}]}>Sauvegarde en ligne</Text>
+      </View>
       <Section eyebrow="SUIVI MAGASIN" title="Actions"/>
       {(data.actions||[]).map(a=><View key={a.id} style={[S.card,{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}]}>
-        <Text style={{color:C.text,flex:1,marginRight:12}}>{a.title}</Text><Badge tone={a.status==='closed'?'green':'muted'} text={a.status||'ouverte'}/>
+        <Text style={{color:C.text,flex:1,marginRight:12}}>{a.title}</Text>
+        <Badge tone={a.status==='closed'?'green':'muted'} text={a.status||'ouverte'}/>
       </View>)}
       {editable?<View style={S.card}>
         <TextInput style={S.input} placeholder="Nouvelle action à suivre…" value={action} onChangeText={setAction} maxLength={300}/>
         <Button label={busy?'Ajout…':'Ajouter l’action'} onPress={addAction} disabled={busy||!action.trim()} style={{marginTop:11}}/>
       </View>:null}
-      {data.perfect_store?.score!=null?<View style={[S.card,{marginTop:15}]}><Text style={S.eyebrow}>PERFECT STORE</Text>
+      {data.perfect_store?.score!=null?<View style={[S.card,{marginTop:15}]}>
+        <Text style={S.eyebrow}>PERFECT STORE</Text>
         <Text style={{color:C.navy,fontWeight:'900',fontSize:27}}>{data.perfect_store.score} / 100</Text>
       </View>:null}
-      {editable?<Button label={busy?'Enregistrement…':'Terminer la visite'} onPress={finish} disabled={busy||Object.values(saving).some(Boolean)} style={{marginTop:22}}/>:null}
-    </>}
-  </ScrollView>;
+      {editable?<Button label={busy?'Enregistrement…':'Terminer la visite'} onPress={finish}
+        disabled={busy||saving||missing.length>0} style={{marginTop:22}}/>:null}
+    </>}/>;
 }
 
 
@@ -770,7 +882,7 @@ function CrmApp(){
   return <View style={{flex:1,backgroundColor:C.bg}}>
     <StatusBar style="light" backgroundColor={C.navy}/>
     {ready?<SafeAreaView edges={['top','left','right','bottom']} style={[S.screen,{backgroundColor:C.navy}]}>
-      <View style={{backgroundColor:C.navy,paddingTop:10,paddingBottom:24,paddingHorizontal:23,borderBottomLeftRadius:25,borderBottomRightRadius:25}}>
+      {!visitId?<View style={{backgroundColor:C.navy,paddingTop:10,paddingBottom:24,paddingHorizontal:23,borderBottomLeftRadius:25,borderBottomRightRadius:25}}>
         <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:23}}>
           <View style={{flexDirection:'row',alignItems:'center',gap:11}}>
             <View style={{backgroundColor:'white',width:41,height:41,borderRadius:12,alignItems:'center',justifyContent:'center'}}><Text style={{color:C.navy,fontWeight:'900',fontSize:26}}>C<Text style={{color:C.blue}}>.</Text></Text></View>
@@ -786,7 +898,7 @@ function CrmApp(){
             <Text style={{color:'white',fontSize:15,fontWeight:'800',marginTop:6}} numberOfLines={1}>{selected?.name||'Aucune mission'}</Text></View>
           <Text style={{color:'white',fontSize:20}}>⌄</Text>
         </Pressable>
-      </View>
+      </View>:null}
       <View style={{flex:1,backgroundColor:C.bg}}>
         {error?<Pressable onPress={()=>setError('')} style={{marginHorizontal:20,marginTop:12,padding:11,borderRadius:10,backgroundColor:C.redSoft,borderColor:'#F9D1D4',borderWidth:1}}><Text style={{color:C.danger,fontSize:12}}>{error}  ×</Text></Pressable>:null}
         {screen()}
