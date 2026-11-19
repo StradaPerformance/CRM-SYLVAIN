@@ -19,7 +19,7 @@ export function productCoverage(products=[],readings=[]){
    const present=list.filter(p=>byId[p.mission_product_id]?.present===true).length;
    const absent=list.filter(p=>byId[p.mission_product_id]?.present===false).length;
    return {total:list.length,present,absent,remaining:list.length-present-absent,
-     percent:list.length?Math.round(present/list.length*100):null};
+     percent:list.length?Number((present/list.length*100).toFixed(1)):null};
  };
  const required=products.filter(p=>p.required===true);
  const picking=products.filter(p=>p.required!==true);
