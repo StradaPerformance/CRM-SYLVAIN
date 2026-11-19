@@ -220,6 +220,10 @@ export async function finishLocalVisit(owner,id){
   // Immediate validation for simple required answers; server remains the final authority for conditions.
   const missing=(v.template?.questions||[]).filter(q=>q.required&&!q.conditions&&!v.answers.some(a=>a.question_id===q.id&&a.value!==null&&a.value!==''));
   if(missing.length)throw Error('Réponses obligatoires manquantes : '+missing.slice(0,3).map(q=>q.label).join(', '));
+  const products=v.template?.assortment?.products||[];
+  const observed=new Set((v.products||[]).filter(p=>typeof p.present==='boolean').map(p=>p.mission_product_id));
+  const remaining=products.filter(p=>!observed.has(p.mission_product_id));
+  if(remaining.length)throw Error(remaining.length+' référence(s) à déclarer présentes ou absentes avant de terminer le relevé.');
   await db.runAsync("UPDATE visits_local SET status='ready',updated_at=?,error='' WHERE id=? AND owner=?",[now(),id,owner]);
 }
 export async function resumeLocalVisit(owner,id){
@@ -227,13 +231,15 @@ export async function resumeLocalVisit(owner,id){
 }
 export async function getPending(owner){
   assertOwner(owner);const db=await localDb();
-  const [v,p,a,ans]=await Promise.all([
+  const [v,p,a,ans,products,comments]=await Promise.all([
     db.getAllAsync("SELECT * FROM visits_local WHERE owner=? AND status<>'synced' ORDER BY created_at",[owner]),
     db.getFirstAsync("SELECT count(*) c FROM photos_local p JOIN visits_local v ON v.id=p.visit_id WHERE v.owner=? AND p.sent=0",[owner]),
     db.getFirstAsync("SELECT count(*) c FROM actions_local a JOIN visits_local v ON v.id=a.visit_id WHERE v.owner=? AND a.sent=0",[owner]),
     db.getFirstAsync("SELECT count(*) c FROM answers_local a JOIN visits_local v ON v.id=a.visit_id WHERE v.owner=? AND a.synced_revision<a.revision",[owner]),
+    db.getFirstAsync("SELECT count(*) c FROM product_readings_local p JOIN visits_local v ON v.id=p.visit_id WHERE v.owner=? AND p.synced_revision<p.revision",[owner]),
+    db.getFirstAsync("SELECT count(*) c FROM visit_comments_local c JOIN visits_local v ON v.id=c.visit_id WHERE v.owner=? AND c.synced_revision<c.revision",[owner]),
   ]);
-  return {visits:v.length,photos:p.c,actions:a.c,answers:ans.c,errors:v.filter(x=>x.error).length,items:v};
+  return {visits:v.length,photos:p.c,actions:a.c,answers:ans.c,products:products.c,comments:comments.c,errors:v.filter(x=>x.error).length,items:v};
 }
 export async function getSyncMeta(owner,mission){return await cacheGet(owner,mission,'meta','last-sync',null)}
 
@@ -269,6 +275,23 @@ export async function drainQueue(owner,api,onProgress=()=>{}){
           await db.runAsync('UPDATE answers_local SET synced_revision=? WHERE visit_id=? AND question_id=? AND revision=?',
             [answer.revision,id,answer.question_id,answer.revision]);sent++;
         }
+        // Send product readings without changing the store's assortment denominator.
+        const products=await db.getAllAsync('SELECT * FROM product_readings_local WHERE visit_id=? AND synced_revision<revision',[id]);
+        for(const row of products){
+          await api('PUT',`/api/visits/${serverId}/products`,{
+            mission_product_id:row.mission_product_id,present:row.present===1,
+            price:row.price,facings:row.facings,position:row.position||'',
+            merchandising_note:row.merchandising_note||''
+          });
+          await db.runAsync('UPDATE product_readings_local SET synced_revision=? WHERE visit_id=? AND mission_product_id=? AND revision=?',
+            [row.revision,id,row.mission_product_id,row.revision]);sent++;
+        }
+        const comment=await db.getFirstAsync('SELECT * FROM visit_comments_local WHERE visit_id=? AND synced_revision<revision',[id]);
+        if(comment){
+          await api('PUT',`/api/visits/${serverId}/comment`,{comment:comment.comment});
+          await db.runAsync('UPDATE visit_comments_local SET synced_revision=? WHERE visit_id=? AND revision=?',
+            [comment.revision,id,comment.revision]);sent++;
+        }
         const photos=await db.getAllAsync('SELECT * FROM photos_local WHERE visit_id=? AND sent=0',[id]);
         for(const photo of photos){
           if(!photo.uri||!(new File(photo.uri)).exists)throw Error('Photo locale introuvable : '+photo.id+'. Ne supprime pas la visite.');
@@ -286,7 +309,9 @@ export async function drainQueue(owner,api,onProgress=()=>{}){
           const pending=await db.getFirstAsync(`SELECT
             (SELECT count(*) FROM answers_local WHERE visit_id=? AND synced_revision<revision)+
             (SELECT count(*) FROM photos_local WHERE visit_id=? AND sent=0)+
-            (SELECT count(*) FROM actions_local WHERE visit_id=? AND sent=0) AS c`,[id,id,id]);
+            (SELECT count(*) FROM actions_local WHERE visit_id=? AND sent=0)+
+            (SELECT count(*) FROM product_readings_local WHERE visit_id=? AND synced_revision<revision)+
+            (SELECT count(*) FROM visit_comments_local WHERE visit_id=? AND synced_revision<revision) AS c`,[id,id,id,id,id]);
           if(pending?.c===0){
             try{await api('POST',`/api/visits/${serverId}/complete`,{});}
             catch(error){
