@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Alert,KeyboardAvoidingView,Platform,Pressable,ScrollView,Text,TextInput,View} from 'react-native';
 import {C,S} from './design';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 // Shared between local-first and connected visit flows.
 // One question per screen; every transition persists before moving on.
@@ -32,6 +33,9 @@ function labelValue(value){
   return String(value);
 }
 export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,storeName,saveLabel,summary,error,canContinue=true}){
+  const insets=useSafeAreaInsets();
+  // Keep the action bar clear of the iOS home-indicator gesture area, including Expo Go.
+  const bottomInset=Platform.OS==='ios'?Math.max(36,insets.bottom+12):14;
   const [step,setStep]=useState(()=>{const first=questions.findIndex(q=>!answered(responses[q.id]));return first<0?questions.length:first;});
   const [draft,setDraft]=useState(null);
   const [busy,setBusy]=useState(false);
@@ -123,13 +127,13 @@ export function QuestionFlow({questions=[],responses={},editable,onSave,onExit,s
         }
       </>:<Text style={S.muted}>Aucune question disponible.</Text>}
     </ScrollView>
-    <View style={{flexDirection:'row',gap:11,paddingHorizontal:20,paddingVertical:12,borderTopWidth:1,borderColor:C.border,backgroundColor:'white'}}>
-      <Pressable accessibilityRole="button" disabled={busy||step===0} onPress={()=>move(step-1,true)} style={{minHeight:49,flex:1,borderColor:C.border,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center',opacity:step===0?0.4:1}}>
+    <View style={{flexDirection:'row',gap:11,paddingHorizontal:20,paddingTop:14,paddingBottom:bottomInset,borderTopWidth:1,borderColor:C.border,backgroundColor:'white'}}>
+      <Pressable accessibilityRole="button" disabled={busy||step===0} onPress={()=>move(step-1,true)} style={{minHeight:56,flex:1,borderColor:C.border,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center',opacity:step===0?0.4:1}}>
         <Text style={{color:C.navy,fontWeight:'800'}}>Précédent</Text>
       </Pressable>
-      {!summaryStep?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>move(step+1)} style={{minHeight:49,flex:1.6,backgroundColor:C.blue,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
+      {!summaryStep?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>move(step+1)} style={{minHeight:56,flex:1.6,backgroundColor:C.blue,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
         <Text style={{color:'white',fontWeight:'900'}}>{busy?'Enregistrement…':step===total-1?'Récapitulatif →':!question?.required&&!answered(draft)?'Passer →':'Suivant →'}</Text>
-      </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):onExit?.()} style={{minHeight:49,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
+      </Pressable>:<Pressable accessibilityRole="button" onPress={()=>missing.length?setStep(questions.findIndex(q=>q.id===missing[0].id)):onExit?.()} style={{minHeight:56,flex:1.6,backgroundColor:C.blueSoft,borderRadius:13,alignItems:'center',justifyContent:'center'}}>
         <Text style={{color:C.blue,fontWeight:'900'}}>{missing.length?'Réponses manquantes':'Retour à ma journée'}</Text>
       </Pressable>}
     </View>
