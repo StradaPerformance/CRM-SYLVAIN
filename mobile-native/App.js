@@ -213,10 +213,10 @@ function CrmApp(){
       onStart={id=>startVisit(id,focus.value)} onOpenVisit={id=>openExistingVisit(id,focus.value)}/>;
     if(focus?.type==='store')return <StoreDetail store={focus.value} busy={busy} onBack={()=>setFocus(null)} onStart={id=>startVisit(id,focus.value)}/>;
     if(!mission)return <View style={S.content}><Empty title="Aucune mission accessible" subtitle="Ton compte doit être affecté à une mission du CRM."/></View>;
-    if(tab==='agenda')return <MapScreen day={day} setDay={setDay} events={events} loading={dayLoading} onEvent={event=>setFocus({type:'event',value:event})}/>;
+    if(tab==='agenda')return <MapScreen day={day} setDay={setDay} events={events} loading={dayLoading} onEvent={event=>setFocus({type:'event',value:event})} onStartVisit={startVisit} onResumeVisit={openExistingVisit}/>;
     if(tab==='park')return <ParkScreen stores={stores} loading={parkLoading} onStore={store=>setFocus({type:'store',value:store})}/>;
     if(tab==='goals')return <GoalsScreen goals={goals||[]} loading={goalsLoading}/>;
-    return <TodayScreen day={day} setDay={setDay} events={events} loading={dayLoading} refresh={refresh} onEvent={event=>setFocus({type:'event',value:event})}/>;
+    return <TodayScreen day={day} setDay={setDay} events={events} loading={dayLoading} refresh={refresh} onEvent={event=>setFocus({type:'event',value:event})} onStartVisit={startVisit} onResumeVisit={openExistingVisit}/>;
   };
   const webview=<WebView ref={bridge.webviewRef} source={{uri:bridge.bridgeUri}} originWhitelist={['https://*']}
     onMessage={bridge.handleMessage} onNavigationStateChange={bridge.navigationChanged}
