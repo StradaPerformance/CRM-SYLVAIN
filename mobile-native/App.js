@@ -229,7 +229,7 @@ function CrmApp(){
   return <View style={{flex:1,backgroundColor:C.bg}}>
     <StatusBar style="light"/>
     {usable?<SafeAreaView edges={['top','left','right','bottom']} style={[S.screen,{backgroundColor:C.navy}]}>
-      <View style={{backgroundColor:C.navy,paddingTop:10,paddingBottom:18,paddingHorizontal:23,borderBottomLeftRadius:25,borderBottomRightRadius:25}}>
+      {!draftId&&!serverVisitId?<View style={{backgroundColor:C.navy,paddingTop:10,paddingBottom:18,paddingHorizontal:23,borderBottomLeftRadius:25,borderBottomRightRadius:25}}>
         <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:17}}>
           <View style={{flexDirection:'row',alignItems:'center',gap:11}}>
             <View style={{backgroundColor:'white',width:41,height:41,borderRadius:12,alignItems:'center',justifyContent:'center'}}><Text style={{color:C.navy,fontWeight:'900',fontSize:26}}>C<Text style={{color:C.blue}}>.</Text></Text></View>
@@ -245,7 +245,7 @@ function CrmApp(){
             <Text style={{color:'white',fontSize:15,fontWeight:'800',marginTop:6}} numberOfLines={1}>{selected?.name||'Aucune mission'}</Text></View>
           {missions.length>1?<ChevronDown color="white" size={19}/>:null}
         </Pressable>
-      </View>
+      </View>:null}
       <View style={{backgroundColor:offlineUnlocked?'#FFF3DF':(pending?.visits?C.blueSoft:C.bg),paddingHorizontal:19,paddingVertical:8,flexDirection:'row',alignItems:'center',gap:8}}>
         {offlineUnlocked?<CloudOff size={16} color={C.amber}/>:<CloudUpload size={16} color={C.blue}/>}
         <Text style={{color:C.navy,fontSize:12,flex:1}}>{offlineUnlocked?'Hors ligne — saisie sauvegardée sur ce téléphone':(pending?.visits?pending.visits+' visite(s) à synchroniser':'Données disponibles sur le téléphone')}</Text>
